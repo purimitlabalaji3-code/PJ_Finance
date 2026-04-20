@@ -35,8 +35,8 @@ export const AppProvider = ({ children }) => {
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   // ── Auth ──────────────────────────────────────────────────────────
-  const login = async (username, password) => {
-    const data = await apiLogin(username, password);
+  const login = async (email, password) => {
+    const data = await apiLogin(email, password);
     localStorage.setItem('pj-token', data.token);
     setIsLoggedIn(true);
   };

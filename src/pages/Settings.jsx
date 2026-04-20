@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import Card from '../components/Card';
 import { KeyRound, ImagePlus, FileText, Eye, EyeOff, Save, Upload, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { apiChangePassword, apiSaveSettings } from '../utils/api';
 
 const SectionTitle = ({ icon: Icon, title, subtitle, color }) => {
   const { theme } = useApp();
@@ -27,16 +28,25 @@ const Settings = () => {
   // ── Password state ──────────────────────────────────────
   const [pw, setPw] = useState({ current: '', newPw: '', confirm: '' });
   const [show, setShow] = useState({ current: false, newPw: false, confirm: false });
+  const [pwLoading, setPwLoading] = useState(false);
 
   const handlePwChange = (e) => setPw(p => ({ ...p, [e.target.name]: e.target.value }));
   const toggleShow = (field) => setShow(s => ({ ...s, [field]: !s[field] }));
 
-  const handleSavePw = () => {
+  const handleSavePw = async () => {
     if (!pw.current || !pw.newPw || !pw.confirm) return toast.error('Fill all password fields');
     if (pw.newPw !== pw.confirm) return toast.error('New passwords do not match');
     if (pw.newPw.length < 6) return toast.error('Password must be at least 6 characters');
-    toast.success('Password updated successfully!');
-    setPw({ current: '', newPw: '', confirm: '' });
+    setPwLoading(true);
+    try {
+      await apiChangePassword(pw.current, pw.newPw);
+      toast.success('Password updated successfully! 🔒');
+      setPw({ current: '', newPw: '', confirm: '' });
+    } catch (err) {
+      toast.error(err.message || 'Failed to update password');
+    } finally {
+      setPwLoading(false);
+    }
   };
 
   // ── Logo state ──────────────────────────────────────────
@@ -130,11 +140,17 @@ const Settings = () => {
           ))}
           <button
             onClick={handleSavePw}
+            disabled={pwLoading}
             className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${
+              pwLoading ? 'opacity-60 cursor-not-allowed' : ''
+            } ${
               isDark ? 'bg-yellow-400 text-black hover:bg-yellow-300' : 'bg-primary-blue text-white hover:opacity-90'
             }`}
           >
-            <Save className="w-4 h-4" /> Save Password
+            {pwLoading
+              ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              : <><Save className="w-4 h-4" /> Save Password</>
+            }
           </button>
         </div>
       </Card>

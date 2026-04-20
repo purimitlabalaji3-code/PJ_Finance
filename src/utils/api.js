@@ -1,6 +1,7 @@
 // Central API client for all backend requests
-// Base URL reads from Vite env variable, falls back to localhost
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+// In production (Vercel): empty string → relative URLs on same domain
+// In local dev: set VITE_API_URL=http://localhost:4000 in .env.local
+const BASE = import.meta.env.VITE_API_URL ?? '';
 
 const getToken = () => localStorage.getItem('pj-token');
 
@@ -20,8 +21,8 @@ const request = async (method, path, body) => {
 };
 
 // ── Auth ─────────────────────────────────────────────────────────────
-export const apiLogin = (username, password) =>
-  request('POST', '/api/auth/login', { username, password });
+export const apiLogin = (email, password) =>
+  request('POST', '/api/auth/login', { email, password });
 
 export const apiChangePassword = (currentPassword, newPassword) =>
   request('POST', '/api/auth/change-password', { currentPassword, newPassword });
