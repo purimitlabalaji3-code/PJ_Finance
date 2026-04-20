@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+  body {
+    @apply font-sans antialiased transition-colors duration-300;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    @apply bg-dark-muted;
+  }
+  .light ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300;
+  }
+}
+
+@layer components {
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 cursor-pointer;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  }
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all duration-200;
+  }
+  .btn {
+    @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 cursor-pointer border-0 outline-none;
+  }
+  .card {
+    @apply rounded-2xl p-5 transition-all duration-200;
+  }
+  .stat-card {
+    @apply card flex flex-col gap-3;
+  }
+
+  /* Dark theme specifics */
+  .dark .input-field {
+    @apply bg-dark-muted border-dark-border text-white placeholder-gray-500 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20;
+  }
+  .dark .card {
+    @apply bg-dark-card border border-dark-border;
+  }
+  .dark .btn-primary {
+    @apply bg-yellow-400 hover:bg-yellow-300 text-black;
+  }
+  .dark .btn-danger {
+    @apply bg-accent-red hover:bg-red-400 text-white;
+  }
+  .dark .btn-ghost {
+    @apply bg-dark-muted hover:bg-dark-border text-gray-300;
+  }
+  .dark .sidebar-link:hover {
+    @apply bg-dark-muted text-yellow-400;
+  }
+  .dark .sidebar-link.active {
+    @apply bg-yellow-400/10 text-yellow-400 border-r-2 border-yellow-400;
+  }
+  .dark .table-row-hover:hover {
+    @apply bg-dark-muted;
+  }
+
+  /* Light theme specifics */
+  .light .input-field {
+    @apply bg-white border-light-border text-gray-900 placeholder-gray-400 focus:border-primary-blue focus:ring-2 focus:ring-blue-500/20;
+  }
+  .light .card {
+    @apply bg-white border border-light-border shadow-sm;
+  }
+  .light .btn-primary {
+    @apply bg-primary-blue hover:bg-blue-700 text-white;
+  }
+  .light .btn-danger {
+    @apply bg-red-500 hover:bg-red-600 text-white;
+  }
+  .light .btn-ghost {
+    @apply bg-gray-100 hover:bg-gray-200 text-gray-700;
+  }
+  .light .sidebar-link:hover {
+    @apply bg-blue-50 text-primary-blue;
+  }
+  .light .sidebar-link.active {
+    @apply bg-blue-50 text-primary-blue border-r-2 border-primary-blue;
+  }
+  .light .table-row-hover:hover {
+    @apply bg-gray-50;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .glass {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}

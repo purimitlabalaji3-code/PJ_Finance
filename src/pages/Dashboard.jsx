@@ -1,0 +1,233 @@
+import React from 'react';
+import { useApp } from '../context/AppContext';
+import Card from '../components/Card';
+import {
+  Users, CreditCard, TrendingUp, AlertCircle,
+  ArrowUpRight, ArrowDownRight, IndianRupee, Calendar,
+  Wallet, Target
+} from 'lucide-react';
+import {
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar
+} from 'recharts';
+import { weeklyData } from '../utils/mockData';
+
+const StatCard = ({ title, value, icon: Icon, change, changeType, color, prefix }) => {
+  const { theme } = useApp();
+  const isDark = theme === 'dark';
+  const isPositive = changeType === 'up';
+
+  return (
+    <Card className="group hover:scale-[1.02] transition-transform duration-200 cursor-default px-4 py-4 sm:p-5">
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
+        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
+          <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+        </div>
+        <span className={`flex flex-shrink-0 items-center gap-0.5 text-[10px] sm:text-xs font-bold px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full ${
+          isPositive
+            ? isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'
+            : isDark ? 'bg-red-500/10 text-accent-red' : 'bg-red-50 text-red-600'
+        }`}>
+          {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+          {change}
+        </span>
+      </div>
+      <div>
+        <p className={`text-xl sm:text-2xl font-bold mb-0.5 sm:mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {prefix}{typeof value === 'number' ? value.toLocaleString('en-IN') : value}
+        </p>
+        <p className={`text-xs sm:text-sm font-medium leading-tight ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{title}</p>
+      </div>
+    </Card>
+  );
+};
+
+const Dashboard = () => {
+  const { stats, loans, collections, theme } = useApp();
+  const isDark = theme === 'dark';
+
+  const chartColor = isDark ? '#FFD700' : '#2563EB';
+  const chartBg = isDark ? '#1A1A1A' : '#FFFFFF';
+  const textColor = isDark ? '#9CA3AF' : '#6B7280';
+  const gridColor = isDark ? '#2A2A2A' : '#F3F4F6';
+
+  const recentLoans = loans.slice(0, 5);
+  const todayPaid = collections.filter(c => c.status === 'Paid').length;
+  const todayTotal = collections.length;
+
+  const totalDisbursed = loans.reduce((s, l) => s + Number(l.loanAmount), 0);
+  const expectedDaily = loans.filter(l => l.status === 'Active').reduce((s, l) => {
+    const loanAmt = Number(l.loanAmount);
+    const intRate = Number(l.interest);
+    const total = loanAmt + (loanAmt * intRate / 100);
+    const daily = l.dailyAmount || Math.ceil(total / l.totalDays);
+    return s + daily;
+  }, 0);
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className={`px-3 py-2 rounded-xl text-sm shadow-2xl border ${isDark ? 'bg-dark-muted border-dark-border text-white' : 'bg-white border-light-border text-gray-900'}`}>
+          <p className="font-semibold mb-1">{label}</p>
+          {payload.map((p, i) => (
+            <p key={i} style={{ color: p.color }} className="font-medium">
+              ₹{p.value.toLocaleString('en-IN')}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+        <StatCard
+          title="Total Customers"
+          value={stats.totalCustomers}
+          icon={Users}
+          change="+12%"
+          changeType="up"
+          color={isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}
+        />
+        <StatCard
+          title="Active Loans"
+          value={stats.activeLoans}
+          icon={CreditCard}
+          change="+5%"
+          changeType="up"
+          color={isDark ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-50 text-purple-600'}
+        />
+        <StatCard
+          title="Total Disbursed"
+          value={totalDisbursed}
+          icon={Wallet}
+          change="All time"
+          changeType="up"
+          prefix="₹"
+          color={isDark ? 'bg-orange-500/10 text-orange-400' : 'bg-orange-50 text-orange-600'}
+        />
+        <StatCard
+          title="Target Daily"
+          value={expectedDaily}
+          icon={Target}
+          change="Expected"
+          changeType="up"
+          prefix="₹"
+          color={isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}
+        />
+        <StatCard
+          title="Today's Collection"
+          value={stats.todayCollection}
+          icon={IndianRupee}
+          change="+8%"
+          changeType="up"
+          prefix="₹"
+          color={isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}
+        />
+        <StatCard
+          title="Pending Amount"
+          value={stats.pendingAmount}
+          icon={AlertCircle}
+          change="3 dues"
+          changeType="down"
+          prefix="₹"
+          color={isDark ? 'bg-red-500/10 text-accent-red' : 'bg-red-50 text-red-500'}
+        />
+      </div>
+
+      {/* Weekly Bar */}
+      <Card>
+        <div className="mb-5">
+          <h3 className={`font-bold text-base ${isDark ? 'text-white' : 'text-gray-900'}`}>This Week</h3>
+          <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Daily collections</p>
+        </div>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={weeklyData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+            <CartesianGrid vertical={false} stroke={gridColor} />
+            <XAxis dataKey="day" tick={{ fill: textColor, fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: textColor, fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/1000).toFixed(1)}k`} />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar dataKey="amount" fill={chartColor} radius={[6, 6, 0, 0]} name="Amount" />
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+
+      {/* Bottom row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Recent Loans */}
+        <Card className="lg:col-span-2">
+          <h3 className={`font-bold text-base mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Recent Loans</h3>
+          <div className={`divide-y ${isDark ? 'divide-dark-border' : 'divide-light-border'}`}>
+            {recentLoans.map(loan => {
+              const progress = (loan.paidDays / loan.totalDays) * 100;
+              return (
+                <div key={loan.id} className="py-3 flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}`}>
+                    <span className="font-bold text-xs">{loan.customerName.charAt(0)}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-1">
+                      <p className={`text-sm font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{loan.customerName}</p>
+                      <span className={`text-xs font-bold ml-2 ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>₹{(loan.loanAmount).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={`flex-1 h-1.5 rounded-full ${isDark ? 'bg-dark-muted' : 'bg-gray-100'}`}>
+                        <div
+                          className={`h-1.5 rounded-full transition-all ${isDark ? 'bg-yellow-400' : 'bg-primary-blue'}`}
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <span className={`text-xs flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{loan.paidDays}/{loan.totalDays}d</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        {/* Today status */}
+        <Card>
+          <h3 className={`font-bold text-base mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Today's Status</h3>
+          <div className="flex flex-col items-center justify-center py-4">
+            <div className="relative w-28 h-28">
+              <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                <circle cx="60" cy="60" r="50" fill="none" stroke={isDark ? '#2A2A2A' : '#F3F4F6'} strokeWidth="10" />
+                <circle
+                  cx="60" cy="60" r="50"
+                  fill="none"
+                  stroke={isDark ? '#10B981' : '#10B981'}
+                  strokeWidth="10"
+                  strokeDasharray={`${2 * Math.PI * 50}`}
+                  strokeDashoffset={`${2 * Math.PI * 50 * (1 - todayPaid / todayTotal)}`}
+                  strokeLinecap="round"
+                  className="transition-all duration-700"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{todayPaid}</span>
+                <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>of {todayTotal}</span>
+              </div>
+            </div>
+            <p className={`mt-3 text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Collected Today</p>
+          </div>
+          <div className="space-y-2 mt-2">
+            <div className={`flex justify-between items-center p-2.5 rounded-xl ${isDark ? 'bg-emerald-500/10' : 'bg-green-50'}`}>
+              <span className={`text-xs font-medium ${isDark ? 'text-emerald-400' : 'text-green-700'}`}>✅ Paid</span>
+              <span className={`text-xs font-bold ${isDark ? 'text-emerald-400' : 'text-green-700'}`}>{todayPaid}</span>
+            </div>
+            <div className={`flex justify-between items-center p-2.5 rounded-xl ${isDark ? 'bg-red-500/10' : 'bg-red-50'}`}>
+              <span className={`text-xs font-medium ${isDark ? 'text-accent-red' : 'text-red-600'}`}>⏳ Pending</span>
+              <span className={`text-xs font-bold ${isDark ? 'text-accent-red' : 'text-red-600'}`}>{todayTotal - todayPaid}</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;

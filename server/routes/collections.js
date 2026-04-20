@@ -1,0 +1,124 @@
+import express from 'express';
+import sql from '../db.js';
+import auth from '../middleware/auth.js';
+
+const router = express.Router();
+
+// GET /api/collections?date=YYYY-MM-DD
+router.get('/', auth, async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toISOString().split('T')[0];
+    const rows = await sql`
+      SELECT col.*, c.name AS customer_name, c.phone
+      FROM collections col
+      JOIN customers c ON c.id = col.customer_id
+      WHERE col.date = ${date}
+      ORDER BY col.created_at DESC
+    `;
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/collections/all — full history
+router.get('/all', auth, async (req, res) => {
+  try {
+    const rows = await sql`
+      SELECT col.*, c.name AS customer_name, c.phone
+      FROM collections col
+      JOIN customers c ON c.id = col.customer_id
+      ORDER BY col.date DESC, col.created_at DESC
+    `;
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/collections/loan/:loanId  — for loan detail timeline
+router.get('/loan/:loanId', auth, async (req, res) => {
+  try {
+    const rows = await sql`
+      SELECT * FROM collections 
+      WHERE loan_id = ${req.params.loanId}
+      ORDER BY date ASC
+    `;
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/collections — generate daily collections for all active loans
+router.post('/generate', auth, async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toISOString().split('T')[0];
+    const activeLoans = await sql`SELECT * FROM loans WHERE status = 'Active'`;
+
+    let generated = 0;
+    for (const loan of activeLoans) {
+      const [existing] = await sql`
+        SELECT id FROM collections WHERE loan_id = ${loan.id} AND date = ${date}
+      `;
+      if (!existing) {
+        await sql`
+          INSERT INTO collections (loan_id, customer_id, due_amount, date)
+          VALUES (${loan.id}, ${loan.customer_id}, ${loan.daily_amount}, ${date})
+        `;
+        generated++;
+      }
+    }
+    res.json({ message: `Generated ${generated} collection entries`, date });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PATCH /api/collections/:id/pay
+router.patch('/:id/pay', auth, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (!amount || parseFloat(amount) <= 0)
+      return res.status(400).json({ error: 'Valid amount required' });
+
+    const [row] = await sql`
+      UPDATE collections
+      SET paid_amount = ${parseFloat(amount)}, status = 'Paid'
+      WHERE id = ${req.params.id}
+      RETURNING *
+    `;
+
+    // Increment paidDays on the loan
+    await sql`UPDATE loans SET paid_days = paid_days + 1 WHERE id = ${row.loan_id}`;
+
+    // Auto-complete loan if 100 days paid
+    await sql`
+      UPDATE loans SET status = 'Completed'
+      WHERE id = ${row.loan_id} AND paid_days >= total_days
+    `;
+
+    res.json(row);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PATCH /api/collections/:id/unpay
+router.patch('/:id/unpay', auth, async (req, res) => {
+  try {
+    const [row] = await sql`
+      UPDATE collections 
+      SET paid_amount = 0, status = 'Pending'
+      WHERE id = ${req.params.id}
+      RETURNING *
+    `;
+    await sql`UPDATE loans SET paid_days = GREATEST(paid_days - 1, 0) WHERE id = ${row.loan_id}`;
+    res.json(row);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+export default router;
