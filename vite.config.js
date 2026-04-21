@@ -1,7 +1,29 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.svg', 'logo.png'],
+      manifest: {
+        name: 'PJ Finance',
+        short_name: 'PJ Finance',
+        description: 'Manage customers, collections, and daily EMI efficiently.',
+        theme_color: '#121212',
+        background_color: '#121212',
+        display: 'standalone',
+        icons: [
+          {
+            src: 'logo.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
+      }
+    })
+  ],
 })
