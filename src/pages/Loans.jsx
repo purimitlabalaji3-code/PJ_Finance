@@ -9,7 +9,7 @@ import { Plus, Trash2, TrendingUp, Calendar, IndianRupee, Eye, Percent } from 'l
 import toast from 'react-hot-toast';
 
 const Loans = () => {
-  const { loans, deleteLoan, theme } = useApp();
+  const { loans, deleteLoan, collections, theme } = useApp();
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -79,10 +79,10 @@ const Loans = () => {
       header: 'Progress', key: 'paidDays',
       render: row => {
         const pct = row.totalDays ? (row.paidDays / row.totalDays) * 100 : 0;
-        const daily = row.dailyAmount || Math.ceil(
-          (Number(row.loanAmount) * (1 + Number(row.interest) / 100)) / 100
-        );
-        const collected = row.paidDays * daily;
+        // Sum actual paid amounts from real collection records for this loan
+        const collected = collections
+          .filter(c => c.loanId === row.id && c.status === 'Paid')
+          .reduce((s, c) => s + Number(c.paidAmount), 0);
         return (
           <div className="space-y-1 min-w-[110px]">
             <div className="flex items-center gap-2">
