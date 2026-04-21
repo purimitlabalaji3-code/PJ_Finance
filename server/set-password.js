@@ -1,4 +1,4 @@
-// Sets the default admin password: PJFinance@123
+// Sets the default admin password: Balaji@9885
 // Run: node server/set-password.js
 
 import { neon } from '@neondatabase/serverless';
@@ -8,7 +8,7 @@ dotenv.config();
 
 const sql = neon(process.env.DATABASE_URL);
 
-const DEFAULT_PASSWORD = 'PJFinance@123';
+const DEFAULT_PASSWORD = 'Balaji@9885';
 
 async function run() {
   const hashed = await bcrypt.hash(DEFAULT_PASSWORD, 10);
@@ -25,7 +25,7 @@ async function run() {
 
   console.log('\n🔑 Login credentials:');
   console.log('   Email   : purimitlabalaji3@gmail.com');
-  console.log('   Password: PJFinance@123');
+  console.log('   Password: Balaji@9885');
   console.log('\n⚠️  Change this password from Settings after first login!');
   process.exit(0);
 }

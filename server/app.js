@@ -1,6 +1,7 @@
 // server/app.js — Express app (no listen, used by both local server and Vercel)
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use(cors({
   credentials: true,
 }));
 
+app.use(cookieParser());
 app.use(express.json({ limit: '5mb' }));
 
 // Health check — verify server is running

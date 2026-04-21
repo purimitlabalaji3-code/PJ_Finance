@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
 
 const auth = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  // Read from HttpOnly cookie (primary) or Authorization header (fallback)
+  const token = req.cookies?.pj_token || req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
 
   try {

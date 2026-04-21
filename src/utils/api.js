@@ -3,17 +3,17 @@
 // In local dev: set VITE_API_URL=http://localhost:4000 in .env.local
 const BASE = import.meta.env.VITE_API_URL ?? '';
 
-const getToken = () => { try { return localStorage.getItem('pj-token'); } catch { return null; } };
+const clearSessionAndReload = () => {
+  window.location.reload();
+};
 
 const request = async (method, path, body) => {
   let res;
   try {
     res = await fetch(`${BASE}${path}`, {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-      },
+      credentials: 'include', // browser auto-sends the HttpOnly cookie
+      headers: { 'Content-Type': 'application/json' },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
   } catch (networkErr) {
@@ -34,6 +34,10 @@ const request = async (method, path, body) => {
     data = {};
   }
 
+  if (res.status === 401) {
+    clearSessionAndReload();
+    throw new Error(data.error || 'Session expired. Please log in again.');
+  }
   if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
   return data;
 };

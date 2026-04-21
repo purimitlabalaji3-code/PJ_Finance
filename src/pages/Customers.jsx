@@ -12,7 +12,7 @@ const StatusBadge = ({ status, isDark }) => (
   <span className={`badge ${status === 'Active'
     ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-700'
     : isDark ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-500'
-  }`}>{status}</span>
+    }`}>{status}</span>
 );
 
 const Customers = () => {
@@ -56,8 +56,8 @@ const Customers = () => {
           {row.image
             ? <img src={row.image} alt={row.name} className="w-9 h-9 rounded-xl object-cover flex-shrink-0 border-2 border-dark-border" />
             : <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm ${isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}`}>
-                {row.name.charAt(0).toUpperCase()}
-              </div>
+              {row.name.charAt(0).toUpperCase()}
+            </div>
           }
           <div>
             <p className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{row.name}</p>
@@ -139,8 +139,8 @@ const Customers = () => {
               {viewTarget.image
                 ? <img src={viewTarget.image} alt={viewTarget.name} className="w-20 h-20 rounded-2xl object-cover flex-shrink-0 border-2 border-dark-border shadow-lg" />
                 : <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-bold flex-shrink-0 ${isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}`}>
-                    {viewTarget.name.charAt(0).toUpperCase()}
-                  </div>
+                  {viewTarget.name.charAt(0).toUpperCase()}
+                </div>
               }
               <div>
                 <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{viewTarget.name}</h3>

@@ -1,11 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-// ── Safe localStorage wrappers ─────────────────────────────────────────────
-// Some Android browsers / privacy modes deny localStorage — wrap everything
+// ── Safe localStorage wrappers (only used for theme now) ────────────────────
 const store = {
   get: (key) => { try { return localStorage.getItem(key); } catch { return null; } },
   set: (key, val) => { try { localStorage.setItem(key, val); } catch { /* ignore */ } },
-  remove: (key) => { try { localStorage.removeItem(key); } catch { /* ignore */ } },
 };
 import {
   apiLogin,
@@ -66,7 +64,8 @@ const normalCustomer = (c) => ({
 
 export const AppProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => store.get('pj-theme') || 'dark');
-  const [isLoggedIn, setIsLoggedIn] = useState(() => !!store.get('pj-token'));
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   const [customers, setCustomers] = useState([]);
   const [loans, setLoans] = useState([]);
@@ -83,15 +82,22 @@ export const AppProvider = ({ children }) => {
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
+  // ── Session Check on Mount ────────────────────────────────────────
+  useEffect(() => {
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(r => r.ok ? setIsLoggedIn(true) : setIsLoggedIn(false))
+      .catch(() => setIsLoggedIn(false))
+      .finally(() => setSessionChecked(true));
+  }, []);
+
   // ── Auth ───────────────────────────────────────────────────────────
   const login = async (email, password) => {
-    const data = await apiLogin(email, password);
-    store.set('pj-token', data.token);
+    await apiLogin(email, password);
     setIsLoggedIn(true);
   };
 
-  const logout = () => {
-    store.remove('pj-token');
+  const logout = async () => {
+    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch { /* ignore */ }
     setIsLoggedIn(false);
   };
 
@@ -111,7 +117,11 @@ export const AppProvider = ({ children }) => {
       setCollections(Array.isArray(col) ? col.map(normalCollection) : []);
     } catch (err) {
       console.error('Load error:', err);
-      toast.error('Failed to load data. Check your connection.');
+      // If the token is missing or expired, the api.js 401 handler will auto-reload.
+      // For all other errors show a toast.
+      if (!err.message?.includes('Session expired') && !err.message?.includes('No token')) {
+        toast.error('Failed to load data. Check your connection.');
+      }
     } finally {
       setLoading(false);
     }
@@ -187,6 +197,7 @@ export const AppProvider = ({ children }) => {
   return (
     <AppContext.Provider value={{
       isLoggedIn, login, logout,
+      sessionChecked,
       theme, toggleTheme,
       customers, addCustomer, updateCustomer, deleteCustomer,
       loans, addLoan, deleteLoan,

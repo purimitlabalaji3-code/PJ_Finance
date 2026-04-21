@@ -7,6 +7,16 @@ import auth from '../middleware/auth.js';
 const router = express.Router();
 const SECRET = process.env.JWT_SECRET || 'pj_finance_secret';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+const COOKIE_OPTIONS = {
+  httpOnly: true,           // JS cannot access — prevents XSS theft
+  secure: IS_PROD,          // HTTPS only in production
+  sameSite: IS_PROD ? 'none' : 'lax', // cross-site cookie works on Vercel
+  maxAge: 7 * 24 * 60 * 60 * 1000,   // 7 days in ms
+  path: '/',
+};
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
@@ -27,11 +37,25 @@ router.post('/login', async (req, res) => {
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
     const token = jwt.sign({ id: admin.id, email }, SECRET, { expiresIn: '7d' });
-    res.json({ token, email });
+
+    // Set HttpOnly cookie — browser sends it automatically on every request
+    res.cookie('pj_token', token, COOKIE_OPTIONS);
+    res.json({ email });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
+});
+
+// POST /api/auth/logout
+router.post('/logout', (req, res) => {
+  res.clearCookie('pj_token', { ...COOKIE_OPTIONS, maxAge: 0 });
+  res.json({ message: 'Logged out' });
+});
+
+// GET /api/auth/me — verify session is still valid
+router.get('/me', auth, (req, res) => {
+  res.json({ email: req.user.email });
 });
 
 // POST /api/auth/change-password
@@ -57,3 +81,4 @@ router.post('/change-password', auth, async (req, res) => {
 });
 
 export default router;
+

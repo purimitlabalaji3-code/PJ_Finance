@@ -35,8 +35,8 @@ const Loans = () => {
             {cust?.image
               ? <img src={cust.image} alt={row.customerName} className="w-9 h-9 rounded-xl object-cover flex-shrink-0 border-2 border-dark-border" />
               : <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm ${isDark ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-50 text-purple-600'}`}>
-                  {row.customerName?.charAt(0).toUpperCase()}
-                </div>
+                {row.customerName?.charAt(0).toUpperCase()}
+              </div>
             }
             <span className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{row.customerName}</span>
           </div>
@@ -46,8 +46,8 @@ const Loans = () => {
     {
       header: 'Loan Amount', key: 'loanAmount',
       render: row => {
-        const principal  = Number(row.loanAmount);
-        const totalAmt   = Number(row.totalAmount) || principal + (principal * Number(row.interest) / 100);
+        const principal = Number(row.loanAmount);
+        const totalAmt = Number(row.totalAmount) || principal + (principal * Number(row.interest) / 100);
         const interestAmt = totalAmt - principal;
         return (
           <div className="space-y-0.5">
@@ -106,7 +106,7 @@ const Loans = () => {
         <span className={`badge ${row.status === 'Active'
           ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-700'
           : isDark ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-500'
-        }`}>{row.status}</span>
+          }`}>{row.status}</span>
       )
     },
     {
@@ -154,15 +154,15 @@ const Loans = () => {
   ];
 
   // Summary stats
-  const totalDisbursed  = loans.reduce((s, l) => s + Number(l.loanAmount), 0);
-  const totalInterest   = loans.reduce((s, l) => {
+  const totalDisbursed = loans.reduce((s, l) => s + Number(l.loanAmount), 0);
+  const totalInterest = loans.reduce((s, l) => {
     const total = Number(l.totalAmount) || Number(l.loanAmount) * (1 + Number(l.interest) / 100);
     return s + (total - Number(l.loanAmount));
   }, 0);
-  const totalPayable    = loans.reduce((s, l) => {
+  const totalPayable = loans.reduce((s, l) => {
     return s + (Number(l.totalAmount) || Number(l.loanAmount) * (1 + Number(l.interest) / 100));
   }, 0);
-  const activeCount     = loans.filter(l => l.status === 'Active').length;
+  const activeCount = loans.filter(l => l.status === 'Active').length;
 
   return (
     <div className="space-y-5">

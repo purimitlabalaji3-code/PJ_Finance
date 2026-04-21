@@ -40,13 +40,25 @@ const ToasterWrapper = () => {
 
 /** Guard: redirect to /login if not authenticated */
 const PrivateLayout = () => {
-  const { isLoggedIn } = useApp();
+  const { isLoggedIn, sessionChecked } = useApp();
+
+  if (!sessionChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
+        <div className="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return isLoggedIn ? <Layout /> : <Navigate to="/login" replace />;
 };
 
 /** Guard: redirect to / if already authenticated */
 const PublicRoute = ({ children }) => {
-  const { isLoggedIn } = useApp();
+  const { isLoggedIn, sessionChecked } = useApp();
+
+  if (!sessionChecked) return null; // Wait for session check
+
   return isLoggedIn ? <Navigate to="/" replace /> : children;
 };
 
