@@ -5,19 +5,24 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import Table from '../components/Table';
 import Modal from '../components/Modal';
-import { Plus, Trash2, TrendingUp, Calendar, IndianRupee, Eye } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, Calendar, IndianRupee, Eye, Percent } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Loans = () => {
-  const { loans, deleteLoan, customers, theme } = useApp();
+  const { loans, deleteLoan, theme } = useApp();
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const handleDelete = () => {
-    deleteLoan(deleteTarget.id);
-    toast.success('Loan deleted');
-    setDeleteTarget(null);
+  const handleDelete = async () => {
+    try {
+      await deleteLoan(deleteTarget.id);
+      toast.success('Loan deleted');
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete loan');
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
   const columns = [
@@ -34,32 +39,61 @@ const Loans = () => {
     },
     {
       header: 'Loan Amount', key: 'loanAmount',
-      render: row => <span className={`font-bold ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>₹{Number(row.loanAmount).toLocaleString('en-IN')}</span>
+      render: row => {
+        const principal  = Number(row.loanAmount);
+        const totalAmt   = Number(row.totalAmount) || principal + (principal * Number(row.interest) / 100);
+        const interestAmt = totalAmt - principal;
+        return (
+          <div className="space-y-0.5">
+            <p className={`font-bold text-sm ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>
+              ₹{principal.toLocaleString('en-IN')}
+            </p>
+            <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              Total: <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>₹{totalAmt.toLocaleString('en-IN')}</span>
+            </p>
+            <p className={`text-[11px] ${isDark ? 'text-pink-400' : 'text-pink-600'}`}>
+              Interest: ₹{interestAmt.toLocaleString('en-IN')}
+            </p>
+          </div>
+        );
+      }
     },
     {
       header: 'Interest', key: 'interest',
-      render: row => <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{row.interest}%</span>
+      render: row => (
+        <span className={`font-semibold text-sm ${isDark ? 'text-pink-400' : 'text-pink-600'}`}>
+          {row.interest}%
+        </span>
+      )
     },
     {
       header: 'Daily EMI', key: 'dailyAmount',
       render: row => {
-        const loanAmount = Number(row.loanAmount);
-        const interest = Number(row.interest);
-        const total = loanAmount + (loanAmount * interest / 100);
-        const daily = Math.ceil(total / 100);
+        const daily = row.dailyAmount || Math.ceil(
+          (Number(row.loanAmount) * (1 + Number(row.interest) / 100)) / 100
+        );
         return <span className={`font-semibold text-sm ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>₹{daily}/day</span>;
       }
     },
     {
       header: 'Progress', key: 'paidDays',
       render: row => {
-        const pct = (row.paidDays / row.totalDays) * 100;
+        const pct = row.totalDays ? (row.paidDays / row.totalDays) * 100 : 0;
+        const daily = row.dailyAmount || Math.ceil(
+          (Number(row.loanAmount) * (1 + Number(row.interest) / 100)) / 100
+        );
+        const collected = row.paidDays * daily;
         return (
-          <div className="flex items-center gap-2 min-w-[100px]">
-            <div className={`flex-1 h-1.5 rounded-full ${isDark ? 'bg-dark-muted' : 'bg-gray-100'}`}>
-              <div className={`h-1.5 rounded-full ${isDark ? 'bg-yellow-400' : 'bg-primary-blue'}`} style={{ width: `${pct}%` }} />
+          <div className="space-y-1 min-w-[110px]">
+            <div className="flex items-center gap-2">
+              <div className={`flex-1 h-1.5 rounded-full ${isDark ? 'bg-dark-muted' : 'bg-gray-100'}`}>
+                <div className={`h-1.5 rounded-full ${isDark ? 'bg-yellow-400' : 'bg-primary-blue'}`} style={{ width: `${pct}%` }} />
+              </div>
+              <span className={`text-xs flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{row.paidDays}d</span>
             </div>
-            <span className={`text-xs flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{row.paidDays}d</span>
+            <p className={`text-[11px] ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>
+              ₹{collected.toLocaleString('en-IN')} collected
+            </p>
           </div>
         );
       }
@@ -97,8 +131,15 @@ const Loans = () => {
   ];
 
   // Summary stats
-  const totalDisbursed = loans.reduce((s, l) => s + Number(l.loanAmount), 0);
-  const activeCount = loans.filter(l => l.status === 'Active').length;
+  const totalDisbursed  = loans.reduce((s, l) => s + Number(l.loanAmount), 0);
+  const totalInterest   = loans.reduce((s, l) => {
+    const total = Number(l.totalAmount) || Number(l.loanAmount) * (1 + Number(l.interest) / 100);
+    return s + (total - Number(l.loanAmount));
+  }, 0);
+  const totalPayable    = loans.reduce((s, l) => {
+    return s + (Number(l.totalAmount) || Number(l.loanAmount) * (1 + Number(l.interest) / 100));
+  }, 0);
+  const activeCount     = loans.filter(l => l.status === 'Active').length;
 
   return (
     <div className="space-y-5">
@@ -112,34 +153,41 @@ const Loans = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="flex items-center gap-4">
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}`}>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}`}>
             <IndianRupee className="w-5 h-5" />
           </div>
           <div>
             <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Total Disbursed</p>
-            <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>₹{totalDisbursed.toLocaleString('en-IN')}</p>
+            <p className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>₹{totalDisbursed.toLocaleString('en-IN')}</p>
           </div>
         </Card>
-        <Card className="flex items-center gap-4">
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}`}>
+        <Card className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-pink-500/10 text-pink-400' : 'bg-pink-50 text-pink-600'}`}>
+            <Percent className="w-5 h-5" />
+          </div>
+          <div>
+            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Total Interest</p>
+            <p className={`text-base font-bold ${isDark ? 'text-pink-400' : 'text-pink-600'}`}>₹{Math.round(totalInterest).toLocaleString('en-IN')}</p>
+          </div>
+        </Card>
+        <Card className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}`}>
             <TrendingUp className="w-5 h-5" />
           </div>
           <div>
-            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Active Loans</p>
-            <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{activeCount}</p>
+            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Total Payable</p>
+            <p className={`text-base font-bold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>₹{Math.round(totalPayable).toLocaleString('en-IN')}</p>
           </div>
         </Card>
-        <Card className="flex items-center gap-4">
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${isDark ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-50 text-purple-600'}`}>
+        <Card className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-50 text-purple-600'}`}>
             <Calendar className="w-5 h-5" />
           </div>
           <div>
-            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Avg. Days Paid</p>
-            <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              {loans.length ? Math.round(loans.reduce((s, l) => s + l.paidDays, 0) / loans.length) : 0}d
-            </p>
+            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Active Loans</p>
+            <p className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{activeCount}</p>
           </div>
         </Card>
       </div>
