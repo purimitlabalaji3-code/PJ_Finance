@@ -4,6 +4,19 @@ import './index.css'
 import App from './App.jsx'
 import React from 'react'
 
+// Register Service Worker for PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('[ServiceWorker] Registration successful with scope: ', registration.scope);
+      })
+      .catch(err => {
+        console.log('[ServiceWorker] Registration failed: ', err);
+      });
+  });
+}
+
 // ── Error Boundary — prevents full white screen on JS errors ──────────
 class ErrorBoundary extends React.Component {
   constructor(props) {
