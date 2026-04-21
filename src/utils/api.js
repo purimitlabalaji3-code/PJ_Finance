@@ -6,21 +6,39 @@ const BASE = import.meta.env.VITE_API_URL ?? '';
 const getToken = () => localStorage.getItem('pj-token');
 
 const request = async (method, path, body) => {
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
+  let res;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+  } catch (networkErr) {
+    // No internet / CORS / server totally down
+    throw new Error('Network error – check your internet connection');
+  }
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Request failed');
+  // Safely parse JSON — Vercel sometimes returns HTML on 500
+  let data;
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    data = await res.json();
+  } else {
+    const text = await res.text();
+    if (!res.ok) {
+      throw new Error(`Server error (${res.status}): ${text.slice(0, 120)}`);
+    }
+    data = {};
+  }
+
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
   return data;
 };
 
-// ── Auth ─────────────────────────────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────────────────────
 export const apiLogin = (email, password) =>
   request('POST', '/api/auth/login', { email, password });
 

@@ -1,5 +1,5 @@
 // api/index.js — Vercel serverless entry point
-// Vercel picks up any file in /api and serves it as a serverless function
+// Must use CommonJS-style export for Vercel Node.js runtime compatibility
 import app from '../server/app.js';
 
 export default app;
