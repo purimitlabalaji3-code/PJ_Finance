@@ -6,7 +6,7 @@ const store = {
   set: (key, val) => { try { localStorage.setItem(key, val); } catch { /* ignore */ } },
 };
 import {
-  apiLogin,
+  apiLogin, apiFetchMe, apiLogout,
   apiFetchCustomers, apiAddCustomer, apiUpdateCustomer, apiDeleteCustomer,
   apiFetchLoans, apiAddLoan, apiDeleteLoan,
   apiFetchCollections, apiGenerateCollections, apiMarkPaid, apiMarkUnpaid,
@@ -84,8 +84,8 @@ export const AppProvider = ({ children }) => {
 
   // ── Session Check on Mount ────────────────────────────────────────
   useEffect(() => {
-    fetch('/api/auth/me', { credentials: 'include' })
-      .then(r => r.ok ? setIsLoggedIn(true) : setIsLoggedIn(false))
+    apiFetchMe()
+      .then(() => setIsLoggedIn(true))
       .catch(() => setIsLoggedIn(false))
       .finally(() => setSessionChecked(true));
   }, []);
@@ -93,11 +93,13 @@ export const AppProvider = ({ children }) => {
   // ── Auth ───────────────────────────────────────────────────────────
   const login = async (email, password) => {
     await apiLogin(email, password);
+    // Tiny delay to let browser sync cookies before loadAll fires
+    await new Promise(r => setTimeout(r, 100));
     setIsLoggedIn(true);
   };
 
   const logout = async () => {
-    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch { /* ignore */ }
+    try { await apiLogout(); } catch { /* ignore */ }
     setIsLoggedIn(false);
   };
 

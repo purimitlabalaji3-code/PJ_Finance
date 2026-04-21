@@ -10,10 +10,10 @@ const SECRET = process.env.JWT_SECRET || 'pj_finance_secret';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 const COOKIE_OPTIONS = {
-  httpOnly: true,           // JS cannot access — prevents XSS theft
-  secure: IS_PROD,          // HTTPS only in production
-  sameSite: IS_PROD ? 'none' : 'lax', // cross-site cookie works on Vercel
-  maxAge: 7 * 24 * 60 * 60 * 1000,   // 7 days in ms
+  httpOnly: true,
+  secure: true, // Always true for better cross-site/mobile support
+  sameSite: 'none', // Required for many mobile browsers/PWAs
+  maxAge: 7 * 24 * 60 * 60 * 1000,
   path: '/',
 };
 

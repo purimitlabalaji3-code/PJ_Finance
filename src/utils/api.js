@@ -7,7 +7,7 @@ const clearSessionAndReload = () => {
   window.location.reload();
 };
 
-const request = async (method, path, body) => {
+const request = async (method, path, body, options = {}) => {
   let res;
   try {
     res = await fetch(`${BASE}${path}`, {
@@ -35,16 +35,23 @@ const request = async (method, path, body) => {
   }
 
   if (res.status === 401) {
-    clearSessionAndReload();
+    if (!options.skipReload && !window.location.pathname.includes('/login')) {
+      clearSessionAndReload();
+    }
     throw new Error(data.error || 'Session expired. Please log in again.');
   }
   if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
   return data;
 };
 
-// ── Auth ──────────────────────────────────────────────────────────────
 export const apiLogin = (email, password) =>
   request('POST', '/api/auth/login', { email, password });
+
+export const apiFetchMe = () =>
+  request('GET', '/api/auth/me', null, { skipReload: true });
+
+export const apiLogout = () =>
+  request('POST', '/api/auth/logout');
 
 export const apiChangePassword = (currentPassword, newPassword) =>
   request('POST', '/api/auth/change-password', { currentPassword, newPassword });
