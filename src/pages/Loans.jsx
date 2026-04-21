@@ -85,10 +85,6 @@ const Loans = () => {
       header: 'Progress', key: 'paidDays',
       render: row => {
         const pct = row.totalDays ? (row.paidDays / row.totalDays) * 100 : 0;
-        // Sum actual paid amounts from real collection records for this loan
-        const collected = collections
-          .filter(c => c.loanId === row.id && c.status === 'Paid')
-          .reduce((s, c) => s + Number(c.paidAmount), 0);
         return (
           <div className="space-y-1 min-w-[110px]">
             <div className="flex items-center gap-2">
@@ -97,8 +93,8 @@ const Loans = () => {
               </div>
               <span className={`text-xs flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{row.paidDays}d</span>
             </div>
-            <p className={`text-[11px] ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>
-              ₹{collected.toLocaleString('en-IN')} collected
+            <p className={`text-[11px] font-semibold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>
+              ₹{(row.totalCollected || 0).toLocaleString('en-IN')} collected
             </p>
           </div>
         );
@@ -114,8 +110,29 @@ const Loans = () => {
       )
     },
     {
-      header: 'Start Date', key: 'startDate',
-      render: row => <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{row.startDate}</span>
+      header: 'Dates', key: 'startDate',
+      render: row => {
+        // Calculate end date skipping Sundays
+        let endDate = '—';
+        if (row.startDate && row.totalDays) {
+          const d = new Date(row.startDate);
+          let t = row.totalDays;
+          if (d.getDay() === 0) d.setDate(d.getDate() + 1); // Skip if start is Sunday
+          t--;
+          while (t > 0) {
+            d.setDate(d.getDate() + 1);
+            if (d.getDay() !== 0) t--;
+          }
+          endDate = d.toISOString().split('T')[0];
+        }
+
+        return (
+          <div className={`text-xs space-y-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <p><span className={isDark ? 'text-gray-500' : 'text-gray-400'}>Start:</span> {row.startDate}</p>
+            <p><span className={isDark ? 'text-gray-500' : 'text-gray-400'}>End:</span> <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>{endDate}</span></p>
+          </div>
+        );
+      }
     },
     {
       header: 'Actions', key: 'actions',

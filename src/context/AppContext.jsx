@@ -36,6 +36,7 @@ const normalLoan = (l) => ({
   status:       l.status,
   paidDays:     l.paid_days,
   totalDays:    l.total_days,
+  totalCollected: Number(l.total_collected || 0),
 });
 
 const normalCollection = (c) => ({
