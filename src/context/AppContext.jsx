@@ -1,4 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+
+// ── Safe localStorage wrappers ─────────────────────────────────────────────
+// Some Android browsers / privacy modes deny localStorage — wrap everything
+const store = {
+  get: (key) => { try { return localStorage.getItem(key); } catch { return null; } },
+  set: (key, val) => { try { localStorage.setItem(key, val); } catch { /* ignore */ } },
+  remove: (key) => { try { localStorage.removeItem(key); } catch { /* ignore */ } },
+};
 import {
   apiLogin,
   apiFetchCustomers, apiAddCustomer, apiUpdateCustomer, apiDeleteCustomer,
@@ -56,8 +64,8 @@ const normalCustomer = (c) => ({
 });
 
 export const AppProvider = ({ children }) => {
-  const [theme, setTheme] = useState(() => localStorage.getItem('pj-theme') || 'dark');
-  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('pj-token'));
+  const [theme, setTheme] = useState(() => store.get('pj-theme') || 'dark');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!store.get('pj-token'));
 
   const [customers, setCustomers] = useState([]);
   const [loans, setLoans] = useState([]);
@@ -69,7 +77,7 @@ export const AppProvider = ({ children }) => {
     const root = document.documentElement;
     root.classList.toggle('dark', theme === 'dark');
     root.classList.toggle('light', theme !== 'dark');
-    localStorage.setItem('pj-theme', theme);
+    store.set('pj-theme', theme);
   }, [theme]);
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
@@ -77,12 +85,12 @@ export const AppProvider = ({ children }) => {
   // ── Auth ───────────────────────────────────────────────────────────
   const login = async (email, password) => {
     const data = await apiLogin(email, password);
-    localStorage.setItem('pj-token', data.token);
+    store.set('pj-token', data.token);
     setIsLoggedIn(true);
   };
 
   const logout = () => {
-    localStorage.removeItem('pj-token');
+    store.remove('pj-token');
     setIsLoggedIn(false);
   };
 

@@ -3,7 +3,7 @@
 // In local dev: set VITE_API_URL=http://localhost:4000 in .env.local
 const BASE = import.meta.env.VITE_API_URL ?? '';
 
-const getToken = () => localStorage.getItem('pj-token');
+const getToken = () => { try { return localStorage.getItem('pj-token'); } catch { return null; } };
 
 const request = async (method, path, body) => {
   let res;
