@@ -42,15 +42,23 @@ const Customers = () => {
   const columns = [
     {
       header: '#', key: 'id',
-      render: (row) => <span className={`text-xs font-mono ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>PJ-{String(row.id).slice(-4)}</span>
+      render: (row, _col, idx) => (
+        <span className={`text-xs font-mono font-bold ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>
+          PJ-{String(idx + 1).padStart(3, '0')}
+        </span>
+      )
     },
     {
       header: 'Customer', key: 'name',
       render: (row) => (
         <div className="flex items-center gap-2.5">
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm ${isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}`}>
-            {row.name.charAt(0)}
-          </div>
+          {/* Show real photo if available, else letter avatar */}
+          {row.image
+            ? <img src={row.image} alt={row.name} className="w-9 h-9 rounded-xl object-cover flex-shrink-0 border-2 border-dark-border" />
+            : <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm ${isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}`}>
+                {row.name.charAt(0).toUpperCase()}
+              </div>
+          }
           <div>
             <p className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{row.name}</p>
             <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{row.phone}</p>
@@ -128,9 +136,12 @@ const Customers = () => {
         {viewTarget && (
           <div className="space-y-4">
             <div className="flex items-center gap-4">
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold ${isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}`}>
-                {viewTarget.name.charAt(0)}
-              </div>
+              {viewTarget.image
+                ? <img src={viewTarget.image} alt={viewTarget.name} className="w-20 h-20 rounded-2xl object-cover flex-shrink-0 border-2 border-dark-border shadow-lg" />
+                : <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-bold flex-shrink-0 ${isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}`}>
+                    {viewTarget.name.charAt(0).toUpperCase()}
+                  </div>
+              }
               <div>
                 <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{viewTarget.name}</h3>
                 <StatusBadge status={viewTarget.status} isDark={isDark} />

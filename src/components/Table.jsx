@@ -44,7 +44,7 @@ const Table = ({ columns, data, emptyMessage = 'No data found', loading = false 
                 >
                   {columns.map((col, j) => (
                     <td key={j} className={`px-4 py-3 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      {col.render ? col.render(row) : row[col.key]}
+                      {col.render ? col.render(row, col, i) : row[col.key]}
                     </td>
                   ))}
                 </tr>
