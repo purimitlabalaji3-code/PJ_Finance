@@ -3,8 +3,8 @@ import { useApp } from '../context/AppContext';
 import Card from '../components/Card';
 import {
   Users, CreditCard, TrendingUp, AlertCircle,
-  ArrowUpRight, ArrowDownRight, IndianRupee, Calendar,
-  Wallet, Target
+  ArrowUpRight, ArrowDownRight, IndianRupee,
+  Wallet, Target, Percent
 } from 'lucide-react';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -56,6 +56,24 @@ const Dashboard = () => {
   const todayTotal = collections.length;
 
   const totalDisbursed = loans.reduce((s, l) => s + Number(l.loanAmount), 0);
+
+  // Total interest = sum of (totalAmount - loanAmount) across all loans
+  const totalInterest = loans.reduce((s, l) => {
+    const interest = Number(l.totalAmount) - Number(l.loanAmount);
+    return s + (interest > 0 ? interest : 0);
+  }, 0);
+
+  // Today's interest collected = interest portion from each paid collection
+  const todayInterestCollected = collections
+    .filter(c => c.status === 'Paid')
+    .reduce((s, c) => {
+      const loan = loans.find(l => l.id === c.loanId);
+      if (!loan || !loan.interest) return s;
+      const intRate = Number(loan.interest);
+      const interestPerDay = Number(loan.dailyAmount) * (intRate / (100 + intRate));
+      return s + interestPerDay;
+    }, 0);
+
   const expectedDaily = loans.filter(l => l.status === 'Active').reduce((s, l) => {
     const loanAmt = Number(l.loanAmount);
     const intRate = Number(l.interest);
@@ -83,7 +101,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title="Total Customers"
           value={stats.totalCustomers}
@@ -122,7 +140,7 @@ const Dashboard = () => {
           title="Today's Collection"
           value={stats.todayCollection}
           icon={IndianRupee}
-          change="+8%"
+          change="Today"
           changeType="up"
           prefix="₹"
           color={isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}
@@ -131,10 +149,28 @@ const Dashboard = () => {
           title="Pending Amount"
           value={stats.pendingAmount}
           icon={AlertCircle}
-          change="3 dues"
+          change="Due today"
           changeType="down"
           prefix="₹"
           color={isDark ? 'bg-red-500/10 text-accent-red' : 'bg-red-50 text-red-500'}
+        />
+        <StatCard
+          title="Total Interest"
+          value={Math.round(totalInterest)}
+          icon={Percent}
+          change="All loans"
+          changeType="up"
+          prefix="₹"
+          color={isDark ? 'bg-pink-500/10 text-pink-400' : 'bg-pink-50 text-pink-600'}
+        />
+        <StatCard
+          title="Interest Today"
+          value={Math.round(todayInterestCollected)}
+          icon={TrendingUp}
+          change="Collected"
+          changeType="up"
+          prefix="₹"
+          color={isDark ? 'bg-cyan-500/10 text-cyan-400' : 'bg-cyan-50 text-cyan-600'}
         />
       </div>
 
