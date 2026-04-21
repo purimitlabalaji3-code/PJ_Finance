@@ -29,6 +29,18 @@ export default {
           red: '#FF3B3B',
           green: '#10B981',
         },
+        // ─── Flat aliases used throughout the app ───────────────
+        // These ensure Tailwind generates: bg-primary-blue, text-primary-blue, etc.
+        'primary-blue':   '#2563EB',
+        'primary-yellow': '#FFD700',
+        'accent-red':     '#FF3B3B',
+        'accent-green':   '#10B981',
+        'dark-bg':        '#0D0D0D',
+        'dark-card':      '#1A1A1A',
+        'dark-border':    '#2A2A2A',
+        'dark-muted':     '#333333',
+        'light-bg':       '#F0F2F5',
+        'light-border':   '#E5E7EB',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

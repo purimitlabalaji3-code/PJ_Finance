@@ -3,8 +3,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is not set in .env');
+  console.error('⚠️  DATABASE_URL is not set — database queries will fail');
 }
 
-const sql = neon(process.env.DATABASE_URL);
+const sql = neon(process.env.DATABASE_URL || 'postgresql://localhost/dummy');
 export default sql;
