@@ -3,8 +3,11 @@
   "short_name": "PJ Finance",
   "name": "PJ Finance",
   "description": "Loan collection and finance management app",
+  "lang": "en-US",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#0D0D0D",
   "theme_color": "#FFD700",
   "orientation": "portrait",
@@ -32,15 +35,29 @@
   "screenshots": [
     {
       "src": "/screenshots/screenshot-mobile.png",
-      "sizes": "512x512",
+      "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
       "src": "/screenshots/screenshot-desktop.png",
-      "sizes": "512x512",
+      "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Loan",
+      "short_name": "New Loan",
+      "description": "Start a new customer loan",
+      "url": "/add-loan"
+    },
+    {
+      "name": "View Reports",
+      "short_name": "Reports",
+      "description": "View daily collection reports",
+      "url": "/reports"
     }
   ]
 }
