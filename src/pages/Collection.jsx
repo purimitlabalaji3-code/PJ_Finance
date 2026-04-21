@@ -38,13 +38,17 @@ const CollectionRow = ({ entry, isDark }) => {
     }`}>
       {/* Customer Info */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-          isPaid
-            ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-700'
-            : isDark ? 'bg-red-500/20 text-accent-red' : 'bg-red-100 text-red-600'
-        }`}>
-          {entry.customerName?.charAt(0) || '?'}
-        </div>
+        {/* Customer photo or letter avatar */}
+        {entry.image
+          ? <img src={entry.image} alt={entry.customerName} className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border-2 border-dark-border" />
+          : <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+              isPaid
+                ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-700'
+                : isDark ? 'bg-red-500/20 text-accent-red' : 'bg-red-100 text-red-600'
+            }`}>
+              {entry.customerName?.charAt(0).toUpperCase() || '?'}
+            </div>
+        }
         <div className="min-w-0">
           <p className={`font-semibold text-sm truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{entry.customerName}</p>
           <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -145,7 +149,7 @@ const Collection = () => {
 
   const enrichedCollections = collections.map(c => {
     const cust = customers.find(cust => cust.id === c.customerId);
-    return { ...c, phone: cust?.phone || '' };
+    return { ...c, phone: cust?.phone || '', image: cust?.image || null };
   });
 
   const filteredCollections = enrichedCollections.filter(c =>

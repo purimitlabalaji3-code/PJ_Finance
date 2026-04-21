@@ -9,7 +9,7 @@ import { Plus, Trash2, TrendingUp, Calendar, IndianRupee, Eye, Percent } from 'l
 import toast from 'react-hot-toast';
 
 const Loans = () => {
-  const { loans, deleteLoan, collections, theme } = useApp();
+  const { loans, deleteLoan, collections, customers, theme } = useApp();
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -28,14 +28,20 @@ const Loans = () => {
   const columns = [
     {
       header: 'Customer', key: 'customerName',
-      render: row => (
-        <div className="flex items-center gap-2.5">
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${isDark ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-50 text-purple-600'}`}>
-            {row.customerName?.charAt(0)}
+      render: (row) => {
+        const cust = customers.find(c => c.id === row.customerId);
+        return (
+          <div className="flex items-center gap-2.5">
+            {cust?.image
+              ? <img src={cust.image} alt={row.customerName} className="w-9 h-9 rounded-xl object-cover flex-shrink-0 border-2 border-dark-border" />
+              : <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm ${isDark ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-50 text-purple-600'}`}>
+                  {row.customerName?.charAt(0).toUpperCase()}
+                </div>
+            }
+            <span className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{row.customerName}</span>
           </div>
-          <span className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{row.customerName}</span>
-        </div>
-      )
+        );
+      }
     },
     {
       header: 'Loan Amount', key: 'loanAmount',
