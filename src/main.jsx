@@ -3,17 +3,48 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import React from 'react'
+import toast, { Toaster } from 'react-hot-toast'
 
-// Register Service Worker for PWA
+// ── Service Worker Registration + Auto-Update System ─────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('[ServiceWorker] Registration successful with scope: ', registration.scope);
+      .then(reg => {
+        console.log('[SW] Registered');
+
+        // Check for updates periodically
+        setInterval(() => { reg.update(); }, 1000 * 60 * 60); // Every hour
+
+        reg.onupdatefound = () => {
+          const installingWorker = reg.installing;
+          if (installingWorker) {
+            installingWorker.onstatechange = () => {
+              if (installingWorker.state === 'installed') {
+                if (navigator.serviceWorker.controller) {
+                  // New content is available; please refresh.
+                  console.log('[SW] New version available, auto-reloading...');
+                  toast.success('App updated! Reloading...', { duration: 3000 });
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 1500);
+                } else {
+                  // Content is cached for offline use.
+                  console.log('[SW] Content cached for offline use.');
+                }
+              }
+            };
+          }
+        };
       })
-      .catch(err => {
-        console.log('[ServiceWorker] Registration failed: ', err);
-      });
+      .catch(err => console.error('[SW] Registration failed:', err));
+  });
+
+  // Handle case where new SW takes over
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
   });
 }
 
@@ -43,20 +74,26 @@ class ErrorBoundary extends React.Component {
         }}>
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '0.5rem' }}>
-            Something went wrong
+            App Compatibility Issue
           </h1>
-          <p style={{ color: '#888', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-            {this.state.error?.message || 'An unexpected error occurred'}
+          <p style={{ color: '#888', fontSize: '0.875rem', marginBottom: '1.5rem', maxWidth: '400px' }}>
+            {this.state.error?.message || 'The app encountered a technical error on this device.'}
           </p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              // Clear cache and reload on crash
+              if ('caches' in window) {
+                caches.keys().then(names => names.forEach(name => caches.delete(name)));
+              }
+              window.location.reload();
+            }}
             style={{
               background: '#FFD700', color: '#000', border: 'none',
               padding: '0.75rem 1.5rem', borderRadius: '0.75rem',
               fontWeight: '700', cursor: 'pointer', fontSize: '0.875rem'
             }}
           >
-            Reload App
+            Reset & Reload App
           </button>
         </div>
       )
@@ -68,6 +105,7 @@ class ErrorBoundary extends React.Component {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
+      <Toaster position="top-center" />
       <App />
     </ErrorBoundary>
   </StrictMode>,

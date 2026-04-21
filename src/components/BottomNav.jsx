@@ -24,7 +24,7 @@ const BottomNav = () => {
       className={`
         fixed bottom-0 left-0 right-0 z-50
         flex items-stretch
-        lg:hidden
+        md:hidden
         ${isDark
           ? 'bg-dark-card border-t border-dark-border'
           : 'bg-white border-t border-light-border'

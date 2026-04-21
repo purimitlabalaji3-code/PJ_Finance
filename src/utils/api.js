@@ -1,60 +1,88 @@
-// Central API client for all backend requests
-// In production (Vercel): empty string → relative URLs on same domain
-// In local dev: set VITE_API_URL=http://localhost:4000 in .env.local
+// src/utils/api.js — Professional Safe Fetch Wrapper
 const BASE = import.meta.env.VITE_API_URL ?? '';
+const TIMEOUT = 15000; // 15 seconds timeout for slow networks
 
 const clearSessionAndReload = () => {
   window.location.reload();
 };
 
-const request = async (method, path, body, options = {}) => {
-  let res;
+/**
+ * Enhanced fetch with timeout support
+ */
+const fetchWithTimeout = async (url, options = {}) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), TIMEOUT);
+
   try {
-    res = await fetch(`${BASE}${path}`, {
-      method,
-      credentials: 'include', // browser auto-sends the HttpOnly cookie
-      headers: { 'Content-Type': 'application/json' },
-      ...(body ? { body: JSON.stringify(body) } : {}),
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
     });
-  } catch (networkErr) {
-    // No internet / CORS / server totally down
-    throw new Error('Network error – check your internet connection');
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
   }
-
-  // Safely parse JSON — Vercel sometimes returns HTML on 500
-  let data;
-  const contentType = res.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    data = await res.json();
-  } else {
-    const text = await res.text();
-    if (!res.ok) {
-      throw new Error(`Server error (${res.status}): ${text.slice(0, 120)}`);
-    }
-    data = {};
-  }
-
-  if (res.status === 401) {
-    if (!options.skipReload && !window.location.pathname.includes('/login')) {
-      clearSessionAndReload();
-    }
-    throw new Error(data.error || 'Session expired. Please log in again.');
-  }
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-  return data;
 };
 
-export const apiLogin = (email, password) =>
-  request('POST', '/api/auth/login', { email, password });
+/**
+ * Global API request handler with Retries and Error Handling
+ */
+const request = async (method, path, body, options = {}) => {
+  const maxRetries = options.retries ?? 1;
+  let attempt = 0;
 
-export const apiFetchMe = () =>
-  request('GET', '/api/auth/me', null, { skipReload: true });
+  while (attempt <= maxRetries) {
+    try {
+      const res = await fetchWithTimeout(`${BASE}${path}`, {
+        method,
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
 
-export const apiLogout = () =>
-  request('POST', '/api/auth/logout');
+      // Handle raw response (Vercel error pages etc)
+      const contentType = res.headers.get('content-type') || '';
+      let data = {};
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        if (!res.ok) throw new Error(`Server error (${res.status}): ${text.slice(0, 50)}...`);
+      }
 
-export const apiChangePassword = (currentPassword, newPassword) =>
-  request('POST', '/api/auth/change-password', { currentPassword, newPassword });
+      // Handle Auth 401
+      if (res.status === 401) {
+        if (!options.skipReload && !window.location.pathname.includes('/login')) {
+          clearSessionAndReload();
+        }
+        throw new Error(data.error || 'Session expired');
+      }
+
+      if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+      
+      return data;
+
+    } catch (err) {
+      attempt++;
+      const isNetworkError = err.name === 'AbortError' || err.message.includes('Network error');
+      
+      if (attempt <= maxRetries && isNetworkError) {
+        console.warn(`[API] Retry attempt ${attempt} for ${path}`);
+        await new Promise(r => setTimeout(r, 1000 * attempt)); // Exponential backoff
+        continue;
+      }
+      
+      throw err;
+    }
+  }
+};
+
+// ── Auth ──────────────────────────────────────────────────────────────
+export const apiLogin = (email, password) => request('POST', '/api/auth/login', { email, password });
+export const apiFetchMe = () => request('GET', '/api/auth/me', null, { skipReload: true });
+export const apiLogout  = () => request('POST', '/api/auth/logout');
 
 // ── Customers ─────────────────────────────────────────────────────────
 export const apiFetchCustomers = () => request('GET', '/api/customers');
@@ -68,20 +96,11 @@ export const apiAddLoan    = (data) => request('POST', '/api/loans', data);
 export const apiDeleteLoan = (id) => request('DELETE', `/api/loans/${id}`);
 
 // ── Collections ───────────────────────────────────────────────────────
-export const apiFetchCollections = (date) =>
-  request('GET', `/api/collections${date ? `?date=${date}` : ''}`);
-
-export const apiGenerateCollections = (date) =>
-  request('POST', `/api/collections/generate${date ? `?date=${date}` : ''}`);
-
-export const apiMarkPaid = (id, amount) =>
-  request('PATCH', `/api/collections/${id}/pay`, { amount });
-
-export const apiMarkUnpaid = (id) =>
-  request('PATCH', `/api/collections/${id}/unpay`);
-
-export const apiFetchLoanCollections = (loanId) =>
-  request('GET', `/api/collections/loan/${loanId}`);
+export const apiFetchCollections = (date) => request('GET', `/api/collections${date ? `?date=${date}` : ''}`);
+export const apiGenerateCollections = (date) => request('POST', `/api/collections/generate${date ? `?date=${date}` : ''}`);
+export const apiMarkPaid = (id, amount) => request('PATCH', `/api/collections/${id}/pay`, { amount });
+export const apiMarkUnpaid = (id) => request('PATCH', `/api/collections/${id}/unpay`);
+export const apiFetchLoanCollections = (loanId) => request('GET', `/api/collections/loan/${loanId}`);
 
 // ── Settings ──────────────────────────────────────────────────────────
 export const apiFetchSettings = () => request('GET', '/api/settings');

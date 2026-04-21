@@ -9,7 +9,18 @@
   }
 
   body {
-    @apply font-sans antialiased transition-colors duration-300;
+    @apply font-sans antialiased transition-colors duration-300 overflow-x-hidden;
+    /* Prevent pull-to-refresh on mobile if desired, but good for PWAs */
+    overscroll-behavior-y: contain; 
+    /* Safe areas for notched phones */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Fix for older Android WebViews that don't support modern flex/grid properly */
+  img {
+    max-width: 100%;
+    height: auto;
   }
 
   ::-webkit-scrollbar {
@@ -134,5 +145,21 @@
   .glass {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Grid for tablets */
+  .grid-auto-cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  /* Hide scrollbar but keep functionality for ancient browsers */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }

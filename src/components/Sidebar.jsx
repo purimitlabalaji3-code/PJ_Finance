@@ -22,7 +22,7 @@ const Sidebar = () => {
   return (
     <aside
       className={`
-        hidden lg:flex flex-col
+        hidden md:flex flex-col
         w-60 xl:w-64 flex-shrink-0 h-full
         ${isDark
           ? 'bg-dark-card border-r border-dark-border'

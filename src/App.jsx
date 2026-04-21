@@ -1,18 +1,21 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AppProvider, useApp } from './context/AppContext';
-import Layout from './layout/Layout';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Customers from './pages/Customers';
-import AddCustomer from './pages/AddCustomer';
-import Loans from './pages/Loans';
-import AddLoan from './pages/AddLoan';
-import Collection from './pages/Collection';
-import Reports from './pages/Reports';
-import LoanDetail from './pages/LoanDetail';
-import Settings from './pages/Settings';
+import { GlobalLoading, ErrorScreen } from './components/common/CompatUI';
+
+// ── Lazy Load Pages for Performance ───────────────────────────────
+const Layout      = lazy(() => import('./layout/Layout'));
+const Login       = lazy(() => import('./pages/Login'));
+const Dashboard   = lazy(() => import('./pages/Dashboard'));
+const Customers   = lazy(() => import('./pages/Customers'));
+const AddCustomer = lazy(() => import('./pages/AddCustomer'));
+const Loans       = lazy(() => import('./pages/Loans'));
+const AddLoan     = lazy(() => import('./pages/AddLoan'));
+const Collection  = lazy(() => import('./pages/Collection'));
+const Reports     = lazy(() => import('./pages/Reports'));
+const LoanDetail  = lazy(() => import('./pages/LoanDetail'));
+const Settings    = lazy(() => import('./pages/Settings'));
 
 /** Shows themed toasts */
 const ToasterWrapper = () => {
@@ -42,13 +45,7 @@ const ToasterWrapper = () => {
 const PrivateLayout = () => {
   const { isLoggedIn, sessionChecked } = useApp();
 
-  if (!sessionChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D]">
-        <div className="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (!sessionChecked) return <GlobalLoading />;
 
   return isLoggedIn ? <Layout /> : <Navigate to="/login" replace />;
 };
@@ -57,7 +54,7 @@ const PrivateLayout = () => {
 const PublicRoute = ({ children }) => {
   const { isLoggedIn, sessionChecked } = useApp();
 
-  if (!sessionChecked) return null; // Wait for session check
+  if (!sessionChecked) return null; // Wait for session check silently
 
   return isLoggedIn ? <Navigate to="/" replace /> : children;
 };
@@ -67,26 +64,28 @@ const App = () => {
     <AppProvider>
       <BrowserRouter>
         <ToasterWrapper />
-        <Routes>
-          {/* Public route */}
-          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Suspense fallback={<GlobalLoading />}>
+          <Routes>
+            {/* Public route */}
+            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
 
-          {/* Protected routes — all rendered inside Layout */}
-          <Route element={<PrivateLayout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/customers" element={<Customers />} />
-            <Route path="/customers/add" element={<AddCustomer />} />
-            <Route path="/loans" element={<Loans />} />
-            <Route path="/loans/add" element={<AddLoan />} />
-            <Route path="/loans/:id" element={<LoanDetail />} />
-            <Route path="/collection" element={<Collection />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
-          </Route>
+            {/* Protected routes — all rendered inside Layout */}
+            <Route element={<PrivateLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/customers" element={<Customers />} />
+              <Route path="/customers/add" element={<AddCustomer />} />
+              <Route path="/loans" element={<Loans />} />
+              <Route path="/loans/add" element={<AddLoan />} />
+              <Route path="/loans/:id" element={<LoanDetail />} />
+              <Route path="/collection" element={<Collection />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/settings" element={<Settings />} />
+            </Route>
 
-          {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* Catch-all */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </AppProvider>
   );

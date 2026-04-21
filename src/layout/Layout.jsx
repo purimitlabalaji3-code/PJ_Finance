@@ -20,7 +20,7 @@ const Layout = () => {
 
         {/* Scrollable content — extra bottom padding on mobile for BottomNav */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-3 sm:p-4 lg:p-6 pb-24 lg:pb-6 animate-fade-in">
+          <div className="p-3 sm:p-4 md:p-6 pb-24 md:pb-6 animate-fade-in">
             <Outlet />
           </div>
         </main>

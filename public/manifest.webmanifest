@@ -1,16 +1,16 @@
 {
   "id": "/",
   "short_name": "PJ Finance",
-  "name": "PJ Finance",
-  "description": "Loan collection and finance management app",
+  "name": "PJ Finance Admin",
+  "description": "Premium Loan Collection and Finance Management System",
   "lang": "en-US",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone"],
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#0D0D0D",
   "theme_color": "#FFD700",
-  "orientation": "portrait",
+  "orientation": "any",
   "categories": ["finance", "business"],
   "icons": [
     {
@@ -51,13 +51,13 @@
       "name": "Add Loan",
       "short_name": "New Loan",
       "description": "Start a new customer loan",
-      "url": "/add-loan"
+      "url": "/loans/add"
     },
     {
-      "name": "View Reports",
-      "short_name": "Reports",
-      "description": "View daily collection reports",
-      "url": "/reports"
+      "name": "Collection",
+      "short_name": "Collect",
+      "description": "Daily collections",
+      "url": "/collection"
     }
   ]
 }
