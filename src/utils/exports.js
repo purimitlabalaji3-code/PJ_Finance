@@ -338,3 +338,106 @@ export const exportSummaryPDF = ({ customers, loans, collections }) => {
 
   doc.save(`PJ_BusinessSummary_${today()}.pdf`);
 };
+
+// ══════════════════════════════════════════════════════════════════════════
+// 5. SINGLE LOAN STATEMENT — PDF
+// ══════════════════════════════════════════════════════════════════════════
+export const exportSingleLoanPDF = (loan, collections) => {
+  const doc = new jsPDF();
+  const W   = doc.internal.pageSize.getWidth();
+  
+  const principal = Number(loan.loanAmount);
+  const totalPayable = Number(loan.totalAmount) || principal * (1 + Number(loan.interest) / 100);
+  const interestAmount = totalPayable - principal;
+  
+  const loanCollections = collections.filter(c => c.loanId === loan.id);
+  const totalCollected = loanCollections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0);
+  const remaining = totalPayable - totalCollected;
+
+  addHeader(doc, `Loan Statement — ${loan.customerName}`, `Loan ID: ${loan.id} | Started: ${loan.startDate}`);
+
+  // Summary boxes
+  const boxes = [
+    { label: 'Principal',       value: fmt(principal),      color: DARK },
+    { label: 'Interest',        value: `${loan.interest}%`, color: DARK },
+    { label: 'Total Payable',   value: fmt(Math.round(totalPayable)), color: [30, 30, 80] },
+    { label: 'Total Collected', value: fmt(Math.round(totalCollected)), color: GREEN },
+    { label: 'Remaining',       value: fmt(Math.round(remaining)), color: RED },
+  ];
+  
+  const bw = (W - 28) / 5;
+  boxes.forEach((b, i) => {
+    const x = 14 + i * (bw + 2);
+    doc.setFillColor(...b.color);
+    doc.roundedRect(x, 32, bw, 16, 2, 2, 'F');
+    doc.setFontSize(7); doc.setTextColor(...GRAY);
+    doc.text(b.label, x + bw / 2, 37, { align: 'center' });
+    doc.setFontSize(10); doc.setTextColor(...WHITE); doc.setFont('helvetica', 'bold');
+    doc.text(b.value, x + bw / 2, 44, { align: 'center' });
+  });
+
+  // Progress Bar
+  doc.setFillColor(...DARK);
+  doc.roundedRect(14, 52, W - 28, 6, 3, 3, 'F');
+  
+  const pct = totalPayable > 0 ? Math.min(100, (totalCollected / totalPayable) * 100) : 0;
+  if (pct > 0) {
+    doc.setFillColor(...GOLD);
+    doc.roundedRect(14, 52, (W - 28) * (pct / 100), 6, 3, 3, 'F');
+  }
+  
+  doc.setFontSize(8);
+  doc.setTextColor(...GRAY);
+  doc.text(`Paid: ${fmt(totalCollected)}`, 14, 63);
+  doc.text(`Remaining: ${fmt(remaining)}`, W - 14, 63, { align: 'right' });
+
+
+  // Payments Table
+  doc.setFontSize(10); doc.setTextColor(...DARK); doc.setFont('helvetica', 'bold');
+  doc.text('Payment History', 14, 75);
+
+  autoTable(doc, {
+    startY: 80,
+    head: [['Day', 'Date', 'Status', 'Due Amt', 'Paid Amt', 'Note']],
+    body: loanCollections.map((c, i) => {
+      let extraNote = '';
+      if (c.status === 'Paid') {
+        const dAmt = Number(c.dueAmount);
+        const pAmt = Number(c.paidAmount);
+        if (pAmt > dAmt) extraNote = `+${fmt(pAmt - dAmt)} extra`;
+        else if (pAmt < dAmt) extraNote = `Short by ${fmt(dAmt - pAmt)}`;
+      }
+      return [
+        `Day ${i + 1}`,
+        c.date || today(),
+        c.status,
+        fmt(c.dueAmount),
+        c.status === 'Paid' ? fmt(c.paidAmount) : '—',
+        extraNote
+      ];
+    }),
+    styles:     { fontSize: 8, cellPadding: 3 },
+    headStyles: { fillColor: DARK, textColor: GOLD, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [248, 248, 248] },
+    didDrawCell: (data) => {
+      // Status column
+      if (data.column.index === 2 && data.section === 'body') {
+        data.cell.styles.textColor = data.cell.raw === 'Paid' ? [...GREEN] : [...RED];
+        data.cell.styles.fontStyle = 'bold';
+      }
+      // Paid Amount column
+      if (data.column.index === 4 && data.section === 'body' && data.cell.raw !== '—') {
+        data.cell.styles.textColor = [...GREEN];
+      }
+      // Note column
+      if (data.column.index === 5 && data.section === 'body' && data.cell.raw.includes('extra')) {
+        data.cell.styles.textColor = [...GOLD];
+      } else if (data.column.index === 5 && data.section === 'body' && data.cell.raw.includes('Short')) {
+        data.cell.styles.textColor = [...RED];
+      }
+    },
+    didDrawPage: () => addFooter(doc),
+  });
+
+  doc.save(`PJ_Statement_${loan.id}.pdf`);
+};

@@ -4,12 +4,13 @@ import { useApp } from '../context/AppContext';
 import Card from '../components/Card';
 import { ArrowLeft, CheckCircle2, AlertCircle, Download, Clock } from 'lucide-react';
 import { apiFetchLoanCollections } from '../utils/api';
+import { exportSingleLoanPDF } from '../utils/exports';
 import toast from 'react-hot-toast';
 
 const LoanDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { loans, theme } = useApp();
+  const { loans, collections, theme } = useApp();
   const isDark = theme === 'dark';
 
   const loan = loans.find(l => String(l.id) === id);
@@ -80,7 +81,15 @@ const LoanDetail = () => {
         </div>
 
         <button
-          onClick={() => toast.success(`Generating PDF for ${loan.customerName}... 📥`, { duration: 2500 })}
+          onClick={() => {
+            try {
+              exportSingleLoanPDF(loan, collections);
+              toast.success(`Statement for ${loan.customerName} downloaded ✅`);
+            } catch (err) {
+              console.error(err);
+              toast.error('Failed to generate PDF');
+            }
+          }}
           className={`flex-shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all active:scale-95 ${
             isDark ? 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/20' : 'bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-100'
           }`}
