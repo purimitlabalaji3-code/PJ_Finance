@@ -3,9 +3,22 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const today = () => new Date().toISOString().split('T')[0];
-const fmt   = (n) => `Rs.${Number(n || 0).toLocaleString('en-IN')}`;
+const today  = () => new Date().toISOString().split('T')[0];
+const fmt    = (n) => `Rs.${Number(n || 0).toLocaleString('en-IN')}`;
 
+// ── Date range helpers ─────────────────────────────────────────────────────
+export const dateRanges = {
+  daily:   () => { const d = new Date(); return { label: 'Daily',   from: d.toISOString().split('T')[0], to: d.toISOString().split('T')[0] }; },
+  weekly:  () => { const d = new Date(); const f = new Date(d); f.setDate(d.getDate() - 6); return { label: 'Weekly',  from: f.toISOString().split('T')[0], to: d.toISOString().split('T')[0] }; },
+  monthly: () => { const d = new Date(); const f = new Date(d); f.setDate(d.getDate() - 29); return { label: 'Monthly', from: f.toISOString().split('T')[0], to: d.toISOString().split('T')[0] }; },
+  all:     () => { return { label: 'All Time', from: '2000-01-01', to: '2099-12-31' }; },
+};
+
+const inRange = (dateStr, from, to) => {
+  if (!dateStr) return false;
+  const d = dateStr.split('T')[0];
+  return d >= from && d <= to;
+};
 // ── Brand colours ──────────────────────────────────────────────────────────
 const DARK  = [18, 18, 18];
 const GOLD  = [255, 193, 7];

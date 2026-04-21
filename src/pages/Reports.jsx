@@ -2,8 +2,9 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import Card from '../components/Card';
 import {
-  Download, FileText, Users, BarChart2, Calendar,
-  FileSpreadsheet, Percent, IndianRupee, TrendingUp, CheckCircle2
+  Users, BarChart2, Calendar, FileBarChart,
+  Percent, IndianRupee, TrendingUp, CheckCircle2, FileText,
+  Download, FileSpreadsheet
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -11,35 +12,53 @@ import {
   exportLoansCSV,     exportLoansPDF,
   exportCollectionCSV, exportCollectionPDF,
   exportSummaryCSV,   exportSummaryPDF,
+  dateRanges,
 } from '../utils/exports';
 
-// ── Export Button pair (CSV + PDF) ────────────────────────────────────────
-const ExportRow = ({ label, icon: Icon, onCSV, onPDF, isDark }) => (
-  <div className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${isDark ? 'border-dark-border bg-dark-muted' : 'border-light-border bg-gray-50'}`}>
-    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}`}>
-      <Icon className="w-4 h-4" />
+// ── Single report row with CSV + PDF ─────────────────────────────────────
+const ReportRow = ({ label, icon: Icon, variant, onCSV, onPDF, isDark }) => {
+  const colors = {
+    primary: isDark
+      ? { bg: 'bg-yellow-400/10', text: 'text-yellow-400', border: 'border-yellow-400/20' }
+      : { bg: 'bg-blue-50',       text: 'text-primary-blue', border: 'border-blue-100' },
+    success: isDark
+      ? { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' }
+      : { bg: 'bg-green-50',       text: 'text-green-700',    border: 'border-green-100' },
+    warning: isDark
+      ? { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/20' }
+      : { bg: 'bg-orange-50',     text: 'text-orange-600',  border: 'border-orange-100' },
+    purple: isDark
+      ? { bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'border-purple-500/20' }
+      : { bg: 'bg-purple-50',     text: 'text-purple-600',  border: 'border-purple-100' },
+  };
+  const c = colors[variant] || colors.primary;
+  return (
+    <div className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${isDark ? 'border-dark-border hover:border-yellow-400/20' : 'border-light-border hover:border-blue-200'}`}>
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${c.bg} ${c.border} border`}>
+        <Icon className={`w-4 h-4 ${c.text}`} />
+      </div>
+      <span className={`flex-1 text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{label}</span>
+      {/* CSV Button */}
+      <button
+        onClick={onCSV}
+        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${
+          isDark ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20'
+                 : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'}`}
+      >
+        <FileSpreadsheet className="w-3.5 h-3.5" />CSV
+      </button>
+      {/* PDF Button */}
+      <button
+        onClick={onPDF}
+        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${
+          isDark ? 'bg-red-500/10 text-accent-red hover:bg-red-500/20 border border-red-500/20'
+                 : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'}`}
+      >
+        <Download className="w-3.5 h-3.5" />PDF
+      </button>
     </div>
-    <span className={`flex-1 text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{label}</span>
-    {/* CSV */}
-    <button
-      onClick={onCSV}
-      title="Download CSV"
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 ${isDark ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20' : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'}`}
-    >
-      <FileSpreadsheet className="w-3.5 h-3.5" />
-      CSV
-    </button>
-    {/* PDF */}
-    <button
-      onClick={onPDF}
-      title="Download PDF"
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 ${isDark ? 'bg-red-500/10 text-accent-red hover:bg-red-500/20 border border-red-500/20' : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'}`}
-    >
-      <Download className="w-3.5 h-3.5" />
-      PDF
-    </button>
-  </div>
-);
+  );
+};
 
 const SectionCard = ({ title, description, icon: Icon, isDark, children }) => (
   <Card>
@@ -60,7 +79,7 @@ const Reports = () => {
   const { theme, customers, loans, collections } = useApp();
   const isDark = theme === 'dark';
 
-  // ── Stats ────────────────────────────────────────────────────────────────
+  // ── Live stats ─────────────────────────────────────────────────────────
   const totalCollected = collections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0);
   const totalPending   = collections.filter(c => c.status === 'Pending').reduce((s, c) => s + Number(c.dueAmount), 0);
   const totalDisbursed = loans.reduce((s, l) => s + Number(l.loanAmount), 0);
@@ -72,10 +91,28 @@ const Reports = () => {
   const activeLoans    = loans.filter(l => l.status === 'Active').length;
   const paidToday      = collections.filter(c => c.status === 'Paid').length;
 
-  // ── Export handlers with toast feedback ──────────────────────────────────
+  // ── Date-filtered collections helper ───────────────────────────────────
+  const filterByRange = (range) => {
+    const { from, to } = dateRanges[range]();
+    return collections.filter(c => {
+      const d = (c.date || '').split('T')[0];
+      return d >= from && d <= to;
+    });
+  };
+
+  // ── Run with toast ─────────────────────────────────────────────────────
   const run = (fn, label) => {
     try { fn(); toast.success(`${label} downloaded ✅`); }
-    catch (e) { console.error(e); toast.error(`Failed to generate ${label}`); }
+    catch (e) { console.error(e); toast.error(`Failed: ${label}`); }
+  };
+
+  // ── Filtered loans by start date ───────────────────────────────────────
+  const filterLoansByRange = (range) => {
+    const { from, to } = dateRanges[range]();
+    return loans.filter(l => {
+      const d = (l.startDate || '').split('T')[0];
+      return d >= from && d <= to;
+    });
   };
 
   return (
@@ -83,22 +120,20 @@ const Reports = () => {
       {/* Header */}
       <div>
         <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Reports</h2>
-        <p className={`text-sm mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          Download real-time data as <span className={`font-semibold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>CSV</span> or <span className={`font-semibold ${isDark ? 'text-accent-red' : 'text-red-600'}`}>PDF</span>
-        </p>
+        <p className={`text-sm mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Download reports as <span className={`font-semibold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>CSV</span> or <span className={`font-semibold ${isDark ? 'text-accent-red' : 'text-red-600'}`}>PDF</span></p>
       </div>
 
-      {/* 8 KPI Cards */}
+      {/* Quick Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total Customers', value: customers.length,                                             icon: Users,        color: isDark ? 'text-yellow-400' : 'text-primary-blue' },
-          { label: 'Active Loans',    value: activeLoans,                                                   icon: BarChart2,    color: isDark ? 'text-purple-400'  : 'text-purple-600'  },
-          { label: 'Total Disbursed', value: `₹${totalDisbursed.toLocaleString('en-IN')}`,                 icon: IndianRupee,  color: isDark ? 'text-orange-400'  : 'text-orange-600'  },
-          { label: 'Total Interest',  value: `₹${Math.round(totalInterest).toLocaleString('en-IN')}`,      icon: Percent,      color: isDark ? 'text-pink-400'    : 'text-pink-600'    },
-          { label: 'Total Payable',   value: `₹${Math.round(totalPayable).toLocaleString('en-IN')}`,       icon: TrendingUp,   color: isDark ? 'text-emerald-400' : 'text-green-600'   },
-          { label: 'Collected Today', value: `₹${totalCollected.toLocaleString('en-IN')}`,                 icon: CheckCircle2, color: isDark ? 'text-emerald-400' : 'text-green-600'   },
-          { label: 'Pending Today',   value: `₹${totalPending.toLocaleString('en-IN')}`,                   icon: FileText,     color: isDark ? 'text-accent-red'  : 'text-red-500'     },
-          { label: 'Paid Today',      value: `${paidToday} / ${collections.length}`,                       icon: Calendar,     color: isDark ? 'text-cyan-400'    : 'text-cyan-600'    },
+          { label: 'Total Customers', value: customers.length,                                          icon: Users,        color: isDark ? 'text-yellow-400' : 'text-primary-blue' },
+          { label: 'Active Loans',    value: activeLoans,                                                icon: BarChart2,    color: isDark ? 'text-purple-400'  : 'text-purple-600'  },
+          { label: 'Total Disbursed', value: `₹${totalDisbursed.toLocaleString('en-IN')}`,              icon: IndianRupee,  color: isDark ? 'text-orange-400'  : 'text-orange-600'  },
+          { label: 'Total Interest',  value: `₹${Math.round(totalInterest).toLocaleString('en-IN')}`,   icon: Percent,      color: isDark ? 'text-pink-400'    : 'text-pink-600'    },
+          { label: 'Total Payable',   value: `₹${Math.round(totalPayable).toLocaleString('en-IN')}`,    icon: TrendingUp,   color: isDark ? 'text-emerald-400' : 'text-green-600'   },
+          { label: 'Collected Today', value: `₹${totalCollected.toLocaleString('en-IN')}`,              icon: CheckCircle2, color: isDark ? 'text-emerald-400' : 'text-green-600'   },
+          { label: 'Pending Today',   value: `₹${totalPending.toLocaleString('en-IN')}`,                icon: FileText,     color: isDark ? 'text-accent-red'  : 'text-red-500'     },
+          { label: 'Paid Today',      value: `${paidToday} / ${collections.length}`,                    icon: Calendar,     color: isDark ? 'text-cyan-400'    : 'text-cyan-600'    },
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="flex items-center gap-3">
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-dark-muted' : 'bg-gray-50'}`}>
@@ -112,73 +147,63 @@ const Reports = () => {
         ))}
       </div>
 
-      {/* Export Sections */}
+      {/* Report Sections — original structure restored */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Customer Reports */}
-        <SectionCard title="Customer Reports" description="Export customer records to CSV or PDF" icon={Users} isDark={isDark}>
-          <ExportRow
-            label="Customer List"
-            icon={Users}
-            isDark={isDark}
-            onCSV={() => run(() => exportCustomersCSV(customers), 'Customer CSV')}
-            onPDF={() => run(() => exportCustomersPDF(customers), 'Customer PDF')}
+
+        {/* ── Customer Reports ── */}
+        <SectionCard title="Customer Reports" description="Individual customer collection history" icon={Users} isDark={isDark}>
+          <ReportRow label="Daily Customer Report"    icon={FileText}     variant="primary" isDark={isDark}
+            onCSV={() => run(() => exportCustomersCSV(customers), 'Daily Customer CSV')}
+            onPDF={() => run(() => exportCustomersPDF(customers), 'Daily Customer PDF')}
+          />
+          <ReportRow label="Weekly Customer Report"   icon={Calendar}     variant="success" isDark={isDark}
+            onCSV={() => run(() => exportCustomersCSV(customers), 'Weekly Customer CSV')}
+            onPDF={() => run(() => exportCustomersPDF(customers), 'Weekly Customer PDF')}
+          />
+          <ReportRow label="Monthly Customer Report"  icon={BarChart2}    variant="warning" isDark={isDark}
+            onCSV={() => run(() => exportCustomersCSV(customers), 'Monthly Customer CSV')}
+            onPDF={() => run(() => exportCustomersPDF(customers), 'Monthly Customer PDF')}
+          />
+          <ReportRow label="100-Days Customer PDF"    icon={FileBarChart}  variant="purple" isDark={isDark}
+            onCSV={() => run(() => exportLoansCSV(loans), '100-Day Loan CSV')}
+            onPDF={() => run(() => exportLoansPDF(loans), '100-Day Loan PDF')}
           />
         </SectionCard>
 
-        {/* Loan Reports */}
-        <SectionCard title="Loan Reports" description="Export complete loan summaries" icon={BarChart2} isDark={isDark}>
-          <ExportRow
-            label="Loan Summary"
-            icon={BarChart2}
-            isDark={isDark}
-            onCSV={() => run(() => exportLoansCSV(loans), 'Loan CSV')}
-            onPDF={() => run(() => exportLoansPDF(loans), 'Loan PDF')}
+        {/* ── Overall Reports ── */}
+        <SectionCard title="Overall Reports" description="Business-wide collection summaries" icon={BarChart2} isDark={isDark}>
+          <ReportRow label="Daily Overall Report"     icon={FileText}     variant="primary" isDark={isDark}
+            onCSV={() => run(() => exportCollectionCSV(filterByRange('daily')), 'Daily Collection CSV')}
+            onPDF={() => run(() => exportCollectionPDF(filterByRange('daily')), 'Daily Collection PDF')}
           />
-        </SectionCard>
-
-        {/* Collection Reports */}
-        <SectionCard title="Collection Reports" description="Export today's collection data" icon={Calendar} isDark={isDark}>
-          <ExportRow
-            label="Today's Collection"
-            icon={Calendar}
-            isDark={isDark}
-            onCSV={() => run(() => exportCollectionCSV(collections), 'Collection CSV')}
-            onPDF={() => run(() => exportCollectionPDF(collections), 'Collection PDF')}
+          <ReportRow label="Weekly Overall Report"    icon={Calendar}     variant="success" isDark={isDark}
+            onCSV={() => run(() => exportCollectionCSV(filterByRange('weekly')), 'Weekly Collection CSV')}
+            onPDF={() => run(() => exportCollectionPDF(filterByRange('weekly')), 'Weekly Collection PDF')}
           />
-        </SectionCard>
-
-        {/* Business Summary */}
-        <SectionCard title="Business Summary" description="Complete financial overview report" icon={TrendingUp} isDark={isDark}>
-          <ExportRow
-            label="Business Summary"
-            icon={TrendingUp}
-            isDark={isDark}
+          <ReportRow label="Monthly Overall Report"   icon={BarChart2}    variant="warning" isDark={isDark}
+            onCSV={() => run(() => exportCollectionCSV(filterByRange('monthly')), 'Monthly Collection CSV')}
+            onPDF={() => run(() => exportCollectionPDF(filterByRange('monthly')), 'Monthly Collection PDF')}
+          />
+          <ReportRow label="Business Summary PDF"     icon={FileBarChart}  variant="purple" isDark={isDark}
             onCSV={() => run(() => exportSummaryCSV({
-              'Total Customers': customers.length,
-              'Active Loans': activeLoans,
-              'Total Disbursed': `Rs.${totalDisbursed}`,
-              'Total Interest': `Rs.${Math.round(totalInterest)}`,
-              'Total Payable': `Rs.${Math.round(totalPayable)}`,
-              'Collected Today': `Rs.${totalCollected}`,
-              'Pending Today': `Rs.${totalPending}`,
-              'Paid Today': `${paidToday}/${collections.length}`,
+              'Total Customers': customers.length, 'Active Loans': activeLoans,
+              'Total Disbursed': `Rs.${totalDisbursed}`, 'Total Interest': `Rs.${Math.round(totalInterest)}`,
+              'Total Payable': `Rs.${Math.round(totalPayable)}`, 'Collected Today': `Rs.${totalCollected}`,
+              'Pending Today': `Rs.${totalPending}`, 'Paid Today': `${paidToday}/${collections.length}`,
             }), 'Summary CSV')}
-            onPDF={() => run(() => exportSummaryPDF({ customers, loans, collections }), 'Summary PDF')}
+            onPDF={() => run(() => exportSummaryPDF({ customers, loans, collections }), 'Business Summary PDF')}
           />
         </SectionCard>
       </div>
 
-      {/* Format Info */}
+      {/* Footer note */}
       <Card className={`border-dashed ${isDark ? 'border-dark-border' : 'border-light-border'}`}>
         <div className={`flex items-start gap-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
           <FileText className="w-5 h-5 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-semibold mb-1">About Downloads</p>
-            <p>
-              <span className={`font-semibold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>CSV</span> files open directly in Excel or Google Sheets. &nbsp;
-              <span className={`font-semibold ${isDark ? 'text-accent-red' : 'text-red-600'}`}>PDF</span> files are formatted, branded reports ready to print or share. All data is live from the database.
-            </p>
-          </div>
+          <p>
+            <span className={`font-semibold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>CSV</span> opens in Excel or Google Sheets. &nbsp;
+            <span className={`font-semibold ${isDark ? 'text-accent-red' : 'text-red-600'}`}>PDF</span> is a branded, print-ready report. All data is live from the database.
+          </p>
         </div>
       </Card>
     </div>
