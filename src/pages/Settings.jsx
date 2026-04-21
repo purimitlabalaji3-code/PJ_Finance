@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { useApp } from '../context/AppContext';
-import Card from '../components/Card';
+import { useApp } from '@/context/AppContext';
+import Card from '@/components/Card';
 import { KeyRound, ImagePlus, FileText, Eye, EyeOff, Save, Upload, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { apiChangePassword, apiSaveSettings } from '../utils/api';
+import { apiChangePassword, apiSaveSettings } from '@/utils/api';
 
 const SectionTitle = ({ icon: Icon, title, subtitle, color }) => {
   const { theme } = useApp();

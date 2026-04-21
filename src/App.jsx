@@ -1,21 +1,21 @@
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AppProvider, useApp } from './context/AppContext';
-import { GlobalLoading, ErrorScreen } from './components/common/CompatUI';
+import { AppProvider, useApp } from '@/context/AppContext';
+import { GlobalLoading, ErrorScreen } from '@/components/common/CompatUI';
 
 // ── Lazy Load Pages for Performance ───────────────────────────────
-const Layout      = lazy(() => import('./layout/Layout'));
-const Login       = lazy(() => import('./pages/Login'));
-const Dashboard   = lazy(() => import('./pages/Dashboard'));
-const Customers   = lazy(() => import('./pages/Customers'));
-const AddCustomer = lazy(() => import('./pages/AddCustomer'));
-const Loans       = lazy(() => import('./pages/Loans'));
-const AddLoan     = lazy(() => import('./pages/AddLoan'));
-const Collection  = lazy(() => import('./pages/Collection'));
-const Reports     = lazy(() => import('./pages/Reports'));
-const LoanDetail  = lazy(() => import('./pages/LoanDetail'));
-const Settings    = lazy(() => import('./pages/Settings'));
+const Layout      = lazy(() => import('@/layout/Layout'));
+const Login       = lazy(() => import('@/pages/Login'));
+const Dashboard   = lazy(() => import('@/pages/Dashboard'));
+const Customers   = lazy(() => import('@/pages/Customers'));
+const AddCustomer = lazy(() => import('@/pages/AddCustomer'));
+const Loans       = lazy(() => import('@/pages/Loans'));
+const AddLoan     = lazy(() => import('@/pages/AddLoan'));
+const Collection  = lazy(() => import('@/pages/Collection'));
+const Reports     = lazy(() => import('@/pages/Reports'));
+const LoanDetail  = lazy(() => import('@/pages/LoanDetail'));
+const Settings    = lazy(() => import('@/pages/Settings'));
 
 /** Shows themed toasts */
 const ToasterWrapper = () => {
