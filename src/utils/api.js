@@ -83,6 +83,7 @@ const request = async (method, path, body, options = {}) => {
 export const apiLogin = (email, password) => request('POST', '/api/auth/login', { email, password });
 export const apiFetchMe = () => request('GET', '/api/auth/me', null, { skipReload: true });
 export const apiLogout  = () => request('POST', '/api/auth/logout');
+export const apiChangePassword = (currentPassword, newPassword) => request('POST', '/api/auth/change-password', { currentPassword, newPassword });
 
 // ── Customers ─────────────────────────────────────────────────────────
 export const apiFetchCustomers = () => request('GET', '/api/customers');
