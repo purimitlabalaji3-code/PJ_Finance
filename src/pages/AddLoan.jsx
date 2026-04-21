@@ -103,18 +103,28 @@ const AddLoan = () => {
               <Calculator className={`w-5 h-5 ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`} />
               <h3 className={`font-bold text-sm ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>Auto Calculation (100-Day Plan)</h3>
             </div>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              {/* Principal */}
+              <div className={`p-3 rounded-xl ${isDark ? 'bg-dark-muted' : 'bg-white'}`}>
                 <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Principal</p>
-                <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>₹{loanAmt.toLocaleString('en-IN')}</p>
+                <p className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>₹{loanAmt.toLocaleString('en-IN')}</p>
               </div>
-              <div>
+              {/* Interest Amount */}
+              <div className={`p-3 rounded-xl border-2 ${isDark ? 'bg-pink-500/10 border-pink-500/30' : 'bg-pink-50 border-pink-200'}`}>
+                <p className={`text-xs mb-1 ${isDark ? 'text-pink-300' : 'text-pink-600'}`}>Interest ({interest}%)</p>
+                <p className={`text-base font-bold ${isDark ? 'text-pink-400' : 'text-pink-600'}`}>
+                  ₹{(totalAmount - loanAmt).toLocaleString('en-IN')}
+                </p>
+              </div>
+              {/* Total Payable */}
+              <div className={`p-3 rounded-xl ${isDark ? 'bg-dark-muted' : 'bg-white'}`}>
                 <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Total Payable</p>
-                <p className={`text-lg font-bold ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>₹{totalAmount.toLocaleString('en-IN')}</p>
+                <p className={`text-base font-bold ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>₹{totalAmount.toLocaleString('en-IN')}</p>
               </div>
-              <div>
+              {/* Daily EMI */}
+              <div className={`p-3 rounded-xl ${isDark ? 'bg-dark-muted' : 'bg-white'}`}>
                 <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Daily EMI</p>
-                <p className={`text-lg font-bold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>₹{dailyAmount}</p>
+                <p className={`text-base font-bold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>₹{dailyAmount}</p>
               </div>
             </div>
             <div className={`mt-4 p-3 rounded-xl text-xs ${isDark ? 'bg-dark-muted text-gray-400' : 'bg-white text-gray-500'}`}>
