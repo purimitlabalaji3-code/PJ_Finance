@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import Card from '../components/Card';
-import { CheckCircle2, Clock, IndianRupee, RefreshCw, Calendar, Search } from 'lucide-react';
+import { CheckCircle2, Clock, RefreshCw, Calendar, Search, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const CollectionRow = ({ entry, isDark }) => {
@@ -9,17 +9,25 @@ const CollectionRow = ({ entry, isDark }) => {
   const [inputAmt, setInputAmt] = useState(entry.paidAmount > 0 ? String(entry.paidAmount) : '');
   const isPaid = entry.status === 'Paid';
 
-  const handlePaid = () => {
+  const handlePaid = async () => {
     const amt = parseFloat(inputAmt);
     if (!amt || amt <= 0) { toast.error('Enter a valid amount'); return; }
-    markCollectionPaid(entry.id, amt);
-    toast.success(`₹${amt} collected from ${entry.customerName} ✅`);
+    try {
+      await markCollectionPaid(entry.id, amt);
+      toast.success(`₹${amt} collected from ${entry.customerName} ✅`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to mark as paid');
+    }
   };
 
-  const handlePending = () => {
-    markCollectionPending(entry.id);
-    setInputAmt('');
-    toast.success(`Marked as pending`);
+  const handlePending = async () => {
+    try {
+      await markCollectionPending(entry.id);
+      setInputAmt('');
+      toast.success('Marked as pending');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update status');
+    }
   };
 
   return (
@@ -35,7 +43,7 @@ const CollectionRow = ({ entry, isDark }) => {
             ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-700'
             : isDark ? 'bg-red-500/20 text-accent-red' : 'bg-red-100 text-red-600'
         }`}>
-          {entry.customerName.charAt(0)}
+          {entry.customerName?.charAt(0) || '?'}
         </div>
         <div className="min-w-0">
           <p className={`font-semibold text-sm truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{entry.customerName}</p>
@@ -116,18 +124,32 @@ const CollectionRow = ({ entry, isDark }) => {
 };
 
 const Collection = () => {
-  const { collections, customers, theme } = useApp();
+  const { collections, customers, theme, generateCollections } = useApp();
   const isDark = theme === 'dark';
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const todayISO = new Date().toISOString().split('T')[0];
   const [searchTerm, setSearchTerm] = useState('');
+  const [generating, setGenerating] = useState(false);
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      const result = await generateCollections(todayISO);
+      toast.success(result?.message || 'Collections generated for today! ✅');
+    } catch (err) {
+      toast.error(err.message || 'Failed to generate collections');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const enrichedCollections = collections.map(c => {
     const cust = customers.find(cust => cust.id === c.customerId);
     return { ...c, phone: cust?.phone || '' };
   });
 
-  const filteredCollections = enrichedCollections.filter(c => 
-    c.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredCollections = enrichedCollections.filter(c =>
+    c.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (c.phone && c.phone.includes(searchTerm))
   );
 
@@ -147,12 +169,30 @@ const Collection = () => {
             <span>{today}</span>
           </div>
         </div>
+        {/* Generate Today's Collections */}
+        <button
+          onClick={handleGenerate}
+          disabled={generating}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 flex-shrink-0 ${
+            generating ? 'opacity-60 cursor-not-allowed' : ''
+          } ${
+            isDark
+              ? 'bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20 border border-yellow-400/20'
+              : 'bg-blue-50 text-primary-blue hover:bg-blue-100 border border-blue-200'
+          }`}
+        >
+          {generating
+            ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            : <Zap className="w-4 h-4" />
+          }
+          {generating ? 'Generating...' : 'Generate Today'}
+        </button>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total Customers', value: collections.length, color: isDark ? 'text-yellow-400' : 'text-primary-blue' },
+          { label: 'Total Entries', value: collections.length, color: isDark ? 'text-yellow-400' : 'text-primary-blue' },
           { label: 'Paid', value: paidCount, color: isDark ? 'text-emerald-400' : 'text-green-600' },
           { label: 'Pending', value: pendingCount, color: isDark ? 'text-accent-red' : 'text-red-600' },
           { label: "Today's Total", value: `₹${totalCollected.toLocaleString('en-IN')}`, color: isDark ? 'text-yellow-400' : 'text-primary-blue' },
@@ -182,7 +222,7 @@ const Collection = () => {
         </div>
       </Card>
 
-      {/* Manual Search Bar */}
+      {/* Search Bar */}
       <Card>
         <div className="relative">
           <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
@@ -190,7 +230,7 @@ const Collection = () => {
             className={`w-full pl-9 pr-4 py-2.5 text-sm outline-none rounded-xl border transition-all ${isDark
               ? 'bg-dark-muted border-dark-border text-white placeholder-gray-500 focus:border-yellow-400'
               : 'bg-white border-light-border text-gray-900 placeholder-gray-400 focus:border-primary-blue'}`}
-            placeholder="Search manually by customer name or mobile number..."
+            placeholder="Search by customer name or mobile number..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
@@ -199,9 +239,17 @@ const Collection = () => {
 
       {/* Collection List */}
       <div className="space-y-3">
-        {filteredCollections.length === 0 ? (
+        {collections.length === 0 ? (
+          <Card className="text-center py-10">
+            <Zap className={`w-8 h-8 mx-auto mb-3 ${isDark ? 'text-yellow-400/40' : 'text-blue-300'}`} />
+            <p className={`text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>No collections for today yet</p>
+            <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+              Click "Generate Today" to create collection entries for all active loans
+            </p>
+          </Card>
+        ) : filteredCollections.length === 0 ? (
           <Card className="text-center py-8">
-            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>No collections found for "{searchTerm}"</p>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>No results for "{searchTerm}"</p>
           </Card>
         ) : (
           [...filteredCollections]

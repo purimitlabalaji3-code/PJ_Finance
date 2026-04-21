@@ -55,21 +55,24 @@ const AddCustomer = () => {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    setTimeout(() => {
+    try {
       if (isEdit) {
-        updateCustomer(editData.id, form);
+        await updateCustomer(editData.id, form);
         toast.success('Customer updated successfully! ✅');
       } else {
-        addCustomer(form);
+        await addCustomer(form);
         toast.success('Customer added successfully! 🎉');
       }
-      setLoading(false);
       navigate('/customers');
-    }, 600);
+    } catch (err) {
+      toast.error(err.message || 'Failed to save customer');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

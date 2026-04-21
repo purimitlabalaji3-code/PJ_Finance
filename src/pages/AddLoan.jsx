@@ -40,16 +40,19 @@ const AddLoan = () => {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    setTimeout(() => {
-      addLoan(form);
+    try {
+      await addLoan(form);
       toast.success('Loan created successfully! 💰');
-      setLoading(false);
       navigate('/loans');
-    }, 600);
+    } catch (err) {
+      toast.error(err.message || 'Failed to create loan');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const customerOptions = customers.filter(c => c.status === 'Active').map(c => ({

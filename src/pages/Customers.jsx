@@ -28,10 +28,15 @@ const Customers = () => {
     c.phone.includes(search)
   );
 
-  const handleDelete = () => {
-    deleteCustomer(deleteTarget.id);
-    toast.success(`${deleteTarget.name} deleted successfully`);
-    setDeleteTarget(null);
+  const handleDelete = async () => {
+    try {
+      await deleteCustomer(deleteTarget.id);
+      toast.success(`${deleteTarget.name} deleted successfully`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete customer');
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
   const columns = [

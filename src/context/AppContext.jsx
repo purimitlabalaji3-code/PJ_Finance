@@ -15,6 +15,46 @@ export const useApp = () => {
   return context;
 };
 
+// ── Normalizers defined at module scope so they're always available ──────────
+const normalLoan = (l) => ({
+  id:           l.id,
+  customerId:   l.customer_id,
+  customerName: l.customer_name,
+  loanAmount:   Number(l.loan_amount),
+  interest:     Number(l.interest),
+  totalAmount:  Number(l.total_amount),
+  dailyAmount:  Number(l.daily_amount),
+  startDate:    l.start_date ? String(l.start_date).split('T')[0] : '',
+  status:       l.status,
+  paidDays:     l.paid_days,
+  totalDays:    l.total_days,
+});
+
+const normalCollection = (c) => ({
+  id:           c.id,
+  loanId:       c.loan_id,
+  customerId:   c.customer_id,
+  customerName: c.customer_name,
+  phone:        c.phone,
+  dueAmount:    Number(c.due_amount),
+  paidAmount:   Number(c.paid_amount),
+  date:         c.date ? String(c.date).split('T')[0] : '',
+  status:       c.status,
+});
+
+const normalCustomer = (c) => ({
+  id:       c.id,
+  name:     c.name,
+  phone:    c.phone,
+  age:      c.age,
+  gender:   c.gender,
+  aadhaar:  c.aadhaar,
+  address:  c.address,
+  status:   c.status,
+  image:    c.image,
+  joinDate: c.join_date ? String(c.join_date).split('T')[0] : '',
+});
+
 export const AppProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => localStorage.getItem('pj-theme') || 'dark');
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('pj-token'));
@@ -24,7 +64,7 @@ export const AppProvider = ({ children }) => {
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // ── Theme ─────────────────────────────────────────────────────────
+  // ── Theme ──────────────────────────────────────────────────────────
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle('dark', theme === 'dark');
@@ -34,7 +74,7 @@ export const AppProvider = ({ children }) => {
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
-  // ── Auth ──────────────────────────────────────────────────────────
+  // ── Auth ───────────────────────────────────────────────────────────
   const login = async (email, password) => {
     const data = await apiLogin(email, password);
     localStorage.setItem('pj-token', data.token);
@@ -46,7 +86,7 @@ export const AppProvider = ({ children }) => {
     setIsLoggedIn(false);
   };
 
-  // ── Data Loading ──────────────────────────────────────────────────
+  // ── Data Loading ───────────────────────────────────────────────────
   const loadAll = useCallback(async () => {
     if (!isLoggedIn) return;
     setLoading(true);
@@ -57,12 +97,12 @@ export const AppProvider = ({ children }) => {
         apiFetchLoans(),
         apiFetchCollections(today),
       ]);
-      setCustomers(c);
-      setLoans(l.map(normalLoan));
-      setCollections(col.map(normalCollection));
+      setCustomers(Array.isArray(c) ? c.map(normalCustomer) : []);
+      setLoans(Array.isArray(l) ? l.map(normalLoan) : []);
+      setCollections(Array.isArray(col) ? col.map(normalCollection) : []);
     } catch (err) {
       console.error('Load error:', err);
-      toast.error('Failed to load data from server');
+      toast.error('Failed to load data. Check your connection.');
     } finally {
       setLoading(false);
     }
@@ -70,47 +110,7 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // ── Normalizers (snake_case → camelCase) ──────────────────────────
-  const normalLoan = (l) => ({
-    id:           l.id,
-    customerId:   l.customer_id,
-    customerName: l.customer_name,
-    loanAmount:   Number(l.loan_amount),
-    interest:     Number(l.interest),
-    totalAmount:  Number(l.total_amount),
-    dailyAmount:  Number(l.daily_amount),
-    startDate:    l.start_date ? String(l.start_date).split('T')[0] : '',
-    status:       l.status,
-    paidDays:     l.paid_days,
-    totalDays:    l.total_days,
-  });
-
-  const normalCollection = (c) => ({
-    id:           c.id,
-    loanId:       c.loan_id,
-    customerId:   c.customer_id,
-    customerName: c.customer_name,
-    phone:        c.phone,
-    dueAmount:    Number(c.due_amount),
-    paidAmount:   Number(c.paid_amount),
-    date:         c.date ? String(c.date).split('T')[0] : '',
-    status:       c.status,
-  });
-
-  const normalCustomer = (c) => ({
-    id:        c.id,
-    name:      c.name,
-    phone:     c.phone,
-    age:       c.age,
-    gender:    c.gender,
-    aadhaar:   c.aadhaar,
-    address:   c.address,
-    status:    c.status,
-    image:     c.image,
-    joinDate:  c.join_date ? String(c.join_date).split('T')[0] : '',
-  });
-
-  // ── Customer CRUD ─────────────────────────────────────────────────
+  // ── Customer CRUD ──────────────────────────────────────────────────
   const addCustomer = async (customer) => {
     const row = await apiAddCustomer(customer);
     const nc = normalCustomer(row);
@@ -129,7 +129,7 @@ export const AppProvider = ({ children }) => {
     setCustomers(prev => prev.filter(c => c.id !== id));
   };
 
-  // ── Loan CRUD ─────────────────────────────────────────────────────
+  // ── Loan CRUD ──────────────────────────────────────────────────────
   const addLoan = async (loan) => {
     const row = await apiAddLoan(loan);
     const nl = normalLoan(row);
@@ -142,17 +142,17 @@ export const AppProvider = ({ children }) => {
     setLoans(prev => prev.filter(l => l.id !== id));
   };
 
-  // ── Collections ───────────────────────────────────────────────────
+  // ── Collections ────────────────────────────────────────────────────
   const generateCollections = async (date) => {
-    await apiGenerateCollections(date);
+    const result = await apiGenerateCollections(date);
     await loadAll();
+    return result;
   };
 
   const markCollectionPaid = async (id, amount) => {
     const row = await apiMarkPaid(id, amount);
     const nc = normalCollection(row);
-    setCollections(prev => prev.map(c => c.id === id ? { ...c, ...nc } : c));
-    // Update paidDays in loans state optimistically
+    setCollections(prev => prev.map(c => c.id === id ? nc : c));
     setLoans(prev => prev.map(l =>
       l.id === nc.loanId ? { ...l, paidDays: l.paidDays + 1 } : l
     ));
@@ -161,13 +161,13 @@ export const AppProvider = ({ children }) => {
   const markCollectionPending = async (id) => {
     const row = await apiMarkUnpaid(id);
     const nc = normalCollection(row);
-    setCollections(prev => prev.map(c => c.id === id ? { ...c, ...nc } : c));
+    setCollections(prev => prev.map(c => c.id === id ? nc : c));
     setLoans(prev => prev.map(l =>
       l.id === nc.loanId ? { ...l, paidDays: Math.max(l.paidDays - 1, 0) } : l
     ));
   };
 
-  // ── Stats ─────────────────────────────────────────────────────────
+  // ── Stats ──────────────────────────────────────────────────────────
   const stats = {
     totalCustomers:  customers.length,
     activeLoans:     loans.filter(l => l.status === 'Active').length,
