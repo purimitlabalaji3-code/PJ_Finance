@@ -127,8 +127,29 @@ const AddLoan = () => {
                 <p className={`text-base font-bold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>₹{dailyAmount}</p>
               </div>
             </div>
-            <div className={`mt-4 p-3 rounded-xl text-xs ${isDark ? 'bg-dark-muted text-gray-400' : 'bg-white text-gray-500'}`}>
-              📋 The customer will pay <strong className={isDark ? 'text-white' : 'text-gray-900'}>₹{dailyAmount}/day</strong> for <strong className={isDark ? 'text-white' : 'text-gray-900'}>100 days</strong> = Total <strong className={isDark ? 'text-white' : 'text-gray-900'}>₹{(dailyAmount * 100).toLocaleString('en-IN')}</strong>
+            <div className={`mt-4 p-4 rounded-xl text-xs space-y-2 ${isDark ? 'bg-dark-muted' : 'bg-white shadow-sm border border-light-border'}`}>
+              <p className={`flex items-center gap-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                <span>📋</span>
+                <span>The customer will pay <strong className={isDark ? 'text-white' : 'text-gray-900'}>₹{dailyAmount}/day</strong> for <strong className={isDark ? 'text-white' : 'text-gray-900'}>100 days</strong> = Total <strong className={isDark ? 'text-white' : 'text-gray-900'}>₹{(dailyAmount * 100).toLocaleString('en-IN')}</strong></span>
+              </p>
+              {form.startDate && (
+                <p className={`flex items-center gap-2 pt-2 border-t ${isDark ? 'text-gray-400 border-dark-border' : 'text-gray-500 border-gray-100'}`}>
+                  <span>📅</span>
+                  <span>Estimated End Date (excluding Sundays): <strong className={isDark ? 'text-emerald-400' : 'text-green-600'}>
+                    {(() => {
+                      const d = new Date(form.startDate);
+                      let t = 100;
+                      if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+                      t--;
+                      while (t > 0) {
+                        d.setDate(d.getDate() + 1);
+                        if (d.getDay() !== 0) t--;
+                      }
+                      return d.toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+                    })()}
+                  </strong></span>
+                </p>
+              )}
             </div>
           </Card>
         )}
