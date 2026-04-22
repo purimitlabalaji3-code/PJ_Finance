@@ -103,57 +103,7 @@ const Settings = () => {
         <p className={`text-sm mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Manage your app configuration</p>
       </div>
 
-      {/* ─── Change Password ─────────────────────────────── */}
-      <Card>
-        <SectionTitle
-          icon={KeyRound}
-          title="Change Password"
-          subtitle="Update your admin login password"
-          color={isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}
-        />
-        <div className="space-y-3">
-          {[
-            { name: 'current', label: 'Current Password', field: 'current' },
-            { name: 'newPw',   label: 'New Password',     field: 'newPw' },
-            { name: 'confirm', label: 'Confirm Password', field: 'confirm' },
-          ].map(({ name, label, field }) => (
-            <div key={name}>
-              <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{label}</label>
-              <div className="relative">
-                <input
-                  type={show[field] ? 'text' : 'password'}
-                  name={name}
-                  value={pw[name]}
-                  onChange={handlePwChange}
-                  placeholder="••••••••"
-                  className={`${inputCls} pr-10`}
-                />
-                <button
-                  type="button"
-                  onClick={() => toggleShow(field)}
-                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
-                >
-                  {show[field] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-          ))}
-          <button
-            onClick={handleSavePw}
-            disabled={pwLoading}
-            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${
-              pwLoading ? 'opacity-60 cursor-not-allowed' : ''
-            } ${
-              isDark ? 'bg-yellow-400 text-black hover:bg-yellow-300' : 'bg-primary-blue text-white hover:opacity-90'
-            }`}
-          >
-            {pwLoading
-              ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              : <><Save className="w-4 h-4" /> Save Password</>
-            }
-          </button>
-        </div>
-      </Card>
+      {/* Settings Sections */}
 
       {/* ─── Logo Upload ─────────────────────────────────── */}
       <Card>

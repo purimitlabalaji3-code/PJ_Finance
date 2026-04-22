@@ -2,11 +2,10 @@ import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AppProvider, useApp } from '@/context/AppContext';
-import { GlobalLoading, ErrorScreen } from '@/components/common/CompatUI';
+import { GlobalLoading } from '@/components/common/CompatUI';
 
-// ── Lazy Load Pages for Performance ───────────────────────────────
+// ── Lazy Load Pages ─────────────────────────────────────────────
 const Layout      = lazy(() => import('@/layout/Layout'));
-const Login       = lazy(() => import('@/pages/Login'));
 const Dashboard   = lazy(() => import('@/pages/Dashboard'));
 const Customers   = lazy(() => import('@/pages/Customers'));
 const AddCustomer = lazy(() => import('@/pages/AddCustomer'));
@@ -32,31 +31,10 @@ const ToasterWrapper = () => {
           border: isDark ? '1px solid #2A2A2A' : '1px solid #E5E7EB',
           borderRadius: '0.75rem',
           fontSize: '0.875rem',
-          boxShadow: '0 20px 40px rgb(0 0 0 / 0.2)',
         },
-        success: { iconTheme: { primary: '#10B981', secondary: isDark ? '#1A1A1A' : '#fff' } },
-        error: { iconTheme: { primary: '#FF3B3B', secondary: isDark ? '#1A1A1A' : '#fff' } },
       }}
     />
   );
-};
-
-/** Guard: redirect to /login if not authenticated */
-const PrivateLayout = () => {
-  const { isLoggedIn, sessionChecked } = useApp();
-
-  if (!sessionChecked) return <GlobalLoading />;
-
-  return isLoggedIn ? <Layout /> : <Navigate to="/login" replace />;
-};
-
-/** Guard: redirect to / if already authenticated */
-const PublicRoute = ({ children }) => {
-  const { isLoggedIn, sessionChecked } = useApp();
-
-  if (!sessionChecked) return null; // Wait for session check silently
-
-  return isLoggedIn ? <Navigate to="/" replace /> : children;
 };
 
 const App = () => {
@@ -66,11 +44,8 @@ const App = () => {
         <ToasterWrapper />
         <Suspense fallback={<GlobalLoading />}>
           <Routes>
-            {/* Public route */}
-            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-
-            {/* Protected routes — all rendered inside Layout */}
-            <Route element={<PrivateLayout />}>
+            {/* All routes are now public and rendered inside Layout */}
+            <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/customers/add" element={<AddCustomer />} />

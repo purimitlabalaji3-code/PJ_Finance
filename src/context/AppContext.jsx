@@ -66,8 +66,8 @@ const normalCustomer = (c) => ({
 
 export const AppProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => store.get('pj-theme') || 'dark');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [sessionChecked, setSessionChecked] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true); // Always logged in
+  const [sessionChecked, setSessionChecked] = useState(true); // No check needed
 
   const [customers, setCustomers] = useState([]);
   const [loans, setLoans] = useState([]);
@@ -84,62 +84,9 @@ export const AppProvider = ({ children }) => {
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
-  // ── Session Check on Mount (with retry for slow devices) ──────────────────
-  useEffect(() => {
-    let cancelled = false;
-
-    const checkSession = async () => {
-      // Attempt 1
-      try {
-        await apiFetchMe();
-        if (!cancelled) {
-          setIsLoggedIn(true);
-          setSessionChecked(true); // MUST set this or spinner shows forever
-        }
-        return;
-      } catch {
-        // On slow devices (Vivo, Realme) network may not be ready yet.
-        // Wait 1.5s and retry ONCE before deciding the user is logged out.
-      }
-
-      await new Promise(r => setTimeout(r, 1500));
-      if (cancelled) return;
-
-      // Attempt 2 (retry)
-      try {
-        await apiFetchMe();
-        if (!cancelled) setIsLoggedIn(true);
-      } catch {
-        if (!cancelled) setIsLoggedIn(false);
-      } finally {
-        if (!cancelled) setSessionChecked(true);
-      }
-    };
-
-    checkSession();
-    return () => { cancelled = true; };
-  }, []);
-
-  // ── Auth ───────────────────────────────────────────────────────────
-  const login = async (email, password) => {
-    const res = await apiLogin(email, password);
-    if (res?.token) {
-      store.set('pj_backup_token', res.token);
-    }
-
-    // 🔥 VERIFY SESSION BEFORE PROCEEDING
-    // This ensures cookie is committed and readable by the server
-    // before we let the app navigate to protected routes.
-    await apiFetchMe();
-
-    setIsLoggedIn(true);
-  };
-
-  const logout = async () => {
-    try { await apiLogout(); } catch { /* ignore */ }
-    store.remove('pj_backup_token');
-    setIsLoggedIn(false);
-  };
+  // Authentication logic removed as per request
+  const login = async () => {};
+  const logout = async () => {};
 
   // ── Data Loading ───────────────────────────────────────────────────
   const loadAll = useCallback(async () => {

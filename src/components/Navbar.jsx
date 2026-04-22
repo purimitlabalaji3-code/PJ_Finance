@@ -97,14 +97,6 @@ const Navbar = () => {
             }
           </span>
         </button>
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          title="Logout"
-          className={`p-2 rounded-xl transition-colors ${isDark ? 'text-gray-400 hover:text-accent-red hover:bg-red-500/10' : 'text-gray-400 hover:text-red-600 hover:bg-red-50'}`}
-        >
-          <LogOut className="w-5 h-5" />
-        </button>
       </div>
     </header>
   );

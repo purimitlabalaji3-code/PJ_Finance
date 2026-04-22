@@ -1,21 +1,8 @@
-import jwt from 'jsonwebtoken';
-
+// server/middleware/auth.js — DISABLED AUTH (Always Allow)
 const auth = (req, res, next) => {
-  const token =
-    req.cookies?.pj_token ||
-    (req.headers.authorization && req.headers.authorization.split(' ')[1]);
-
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-
-  try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET || 'pj_finance_secret');
-    next();
-  } catch (err) {
-    const code = err.name === 'TokenExpiredError' ? 'TOKEN_EXPIRED' : 'TOKEN_INVALID';
-    return res.status(401).json({ error: 'Invalid or expired token', code });
-  }
+  // Mock user for internal consistency
+  req.user = { id: 1, email: 'admin@pjfinance.com' };
+  next();
 };
 
 export default auth;
