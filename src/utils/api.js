@@ -1,27 +1,31 @@
-// src/utils/api.js — Professional Safe Fetch Wrapper
+// src/utils/api.js — Production-grade Safe Fetch Wrapper
 const BASE = import.meta.env.VITE_API_URL ?? '';
-const TIMEOUT = 15000; // 15 seconds timeout for slow networks
+const DEFAULT_TIMEOUT = 15000; // 15s for normal requests
+const SESSION_TIMEOUT = 20000; // 20s for session check (Vercel cold starts)
 
 const clearSessionAndReload = () => {
   window.location.reload();
 };
 
 /**
- * Enhanced fetch with timeout support
+ * Enhanced fetch with configurable timeout support
  */
-const fetchWithTimeout = async (url, options = {}) => {
+const fetchWithTimeout = async (url, options = {}, timeout = DEFAULT_TIMEOUT) => {
   const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), TIMEOUT);
+  const id = setTimeout(() => controller.abort(), timeout);
 
   try {
     const response = await fetch(url, {
       ...options,
-      signal: controller.signal
+      signal: controller.signal,
     });
     clearTimeout(id);
     return response;
   } catch (error) {
     clearTimeout(id);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your internet connection.');
+    }
     throw error;
   }
 };
@@ -31,16 +35,22 @@ const fetchWithTimeout = async (url, options = {}) => {
  */
 const request = async (method, path, body, options = {}) => {
   const maxRetries = options.retries ?? 1;
+  // Use longer timeout for session check calls on slow devices
+  const timeout = options.timeout ?? DEFAULT_TIMEOUT;
   let attempt = 0;
 
   while (attempt <= maxRetries) {
     try {
-      const res = await fetchWithTimeout(`${BASE}${path}`, {
-        method,
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        ...(body ? { body: JSON.stringify(body) } : {}),
-      });
+      const res = await fetchWithTimeout(
+        `${BASE}${path}`,
+        {
+          method,
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          ...(body ? { body: JSON.stringify(body) } : {}),
+        },
+        timeout
+      );
 
       const contentType = res.headers.get('content-type') || '';
       let data = {};
@@ -59,18 +69,22 @@ const request = async (method, path, body, options = {}) => {
       }
 
       if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-      
+
       return data;
 
     } catch (err) {
       attempt++;
-      const isNetworkError = err.name === 'AbortError' || err.message.includes('Network error');
-      
+      const isNetworkError =
+        err.name === 'AbortError' ||
+        err.message.toLowerCase().includes('network') ||
+        err.message.toLowerCase().includes('timeout') ||
+        err.message.toLowerCase().includes('failed to fetch');
+
       if (attempt <= maxRetries && isNetworkError) {
-        await new Promise(r => setTimeout(r, 1000 * attempt)); 
+        await new Promise(r => setTimeout(r, 1000 * attempt));
         continue;
       }
-      
+
       throw err;
     }
   }
@@ -78,7 +92,9 @@ const request = async (method, path, body, options = {}) => {
 
 // ── Auth ──────────────────────────────────────────────────────────────
 export const apiLogin          = (email, password) => request('POST', '/api/auth/login', { email, password });
-export const apiFetchMe        = () => request('GET', '/api/auth/me', null, { skipReload: true });
+// apiFetchMe: skipReload = true so a 401 doesn't trigger a reload loop.
+// timeout = 20s to handle Vercel cold starts on slow Android devices.
+export const apiFetchMe        = () => request('GET', '/api/auth/me', null, { skipReload: true, timeout: SESSION_TIMEOUT });
 export const apiLogout         = () => request('POST', '/api/auth/logout');
 export const apiChangePassword = (currentPassword, newPassword) => request('POST', '/api/auth/change-password', { currentPassword, newPassword });
 
@@ -104,7 +120,7 @@ export const apiFetchLoanCollections = (loanId) => request('GET', `/api/collecti
 export const apiFetchSettings  = () => request('GET', '/api/settings');
 export const apiSaveSettings   = (data) => request('PUT', '/api/settings', data);
 
-// ── Fallback Exports (To prevent Build Crash) ─────────────────────────
-export const apiFetchStats     = () => Promise.resolve({ success: true, data: [] });
-export const apiUploadFile     = () => Promise.resolve({ success: true });
-export const apiDeleteFile     = () => Promise.resolve({ success: true });
+// ── Fallback Exports (prevent Build Crash if referenced) ──────────────
+export const apiFetchStats = () => Promise.resolve({ success: true, data: [] });
+export const apiUploadFile = () => Promise.resolve({ success: true });
+export const apiDeleteFile = () => Promise.resolve({ success: true });

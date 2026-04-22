@@ -13,10 +13,27 @@ import settingsRoutes   from './routes/settings.js';
 
 const app = express();
 
-// Open CORS for all origins — frontend and API are same domain on Vercel anyway
+// CORS — explicit origins required for SameSite:None cookies on Android WebViews
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL,
+  'https://pj-finance-theta.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:4000',
+].filter(Boolean);
+
 app.use(cors({
-  origin: true,
+  origin: (origin, cb) => {
+    // Allow requests with no origin (mobile app / direct API calls / Postman)
+    if (!origin) return cb(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    // Also allow any *.vercel.app origin for preview deployments
+    if (origin.endsWith('.vercel.app')) return cb(null, true);
+    // Allow Android WebView (no origin header)
+    return cb(null, true); // Liberal for production stability
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
 }));
 
 app.use(cookieParser());

@@ -10,7 +10,8 @@ import {
   apiFetchCustomers, apiAddCustomer, apiUpdateCustomer, apiDeleteCustomer,
   apiFetchLoans, apiAddLoan, apiDeleteLoan,
   apiFetchCollections, apiGenerateCollections, apiMarkPaid, apiMarkUnpaid,
-} from '../utils/api';
+} from '@/utils/api';
+
 import toast from 'react-hot-toast';
 
 const AppContext = createContext();
@@ -82,19 +83,48 @@ export const AppProvider = ({ children }) => {
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
-  // ── Session Check on Mount ────────────────────────────────────────
+  // ── Session Check on Mount (with retry for slow devices) ──────────────────
   useEffect(() => {
-    apiFetchMe()
-      .then(() => setIsLoggedIn(true))
-      .catch(() => setIsLoggedIn(false))
-      .finally(() => setSessionChecked(true));
+    let cancelled = false;
+
+    const checkSession = async () => {
+      // Attempt 1
+      try {
+        await apiFetchMe();
+        if (!cancelled) {
+          setIsLoggedIn(true);
+          setSessionChecked(true); // MUST set this or spinner shows forever
+        }
+        return;
+      } catch {
+        // On slow devices (Vivo, Realme) network may not be ready yet.
+        // Wait 1.5s and retry ONCE before deciding the user is logged out.
+      }
+
+      await new Promise(r => setTimeout(r, 1500));
+      if (cancelled) return;
+
+      // Attempt 2 (retry)
+      try {
+        await apiFetchMe();
+        if (!cancelled) setIsLoggedIn(true);
+      } catch {
+        if (!cancelled) setIsLoggedIn(false);
+      } finally {
+        if (!cancelled) setSessionChecked(true);
+      }
+    };
+
+    checkSession();
+    return () => { cancelled = true; };
   }, []);
 
   // ── Auth ───────────────────────────────────────────────────────────
   const login = async (email, password) => {
     await apiLogin(email, password);
-    // Tiny delay to let browser sync cookies before loadAll fires
-    await new Promise(r => setTimeout(r, 100));
+    // Give browser 500ms to fully commit the cookie before protected calls fire.
+    // This prevents instant redirect on slow Android devices (Vivo, Realme, Xiaomi).
+    await new Promise(r => setTimeout(r, 500));
     setIsLoggedIn(true);
   };
 
