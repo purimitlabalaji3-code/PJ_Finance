@@ -3,9 +3,6 @@ const BASE = import.meta.env.VITE_API_URL ?? '';
 const DEFAULT_TIMEOUT = 15000; // 15s for normal requests
 const SESSION_TIMEOUT = 20000; // 20s for session check (Vercel cold starts)
 
-const clearSessionAndReload = () => {
-  window.location.reload();
-};
 
 /**
  * Enhanced fetch with configurable timeout support
@@ -62,10 +59,7 @@ const request = async (method, path, body, options = {}) => {
       }
 
       if (res.status === 401) {
-        if (!options.skipReload && !window.location.pathname.includes('/login')) {
-          clearSessionAndReload();
-        }
-        throw new Error(data.error || 'Session expired');
+        throw new Error('Session expired');
       }
 
       if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);

@@ -11,10 +11,10 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: true, // Always true for better cross-site/mobile support
-  sameSite: 'none', // Required for many mobile browsers/PWAs
-  maxAge: 7 * 24 * 60 * 60 * 1000,
+  secure: true,
+  sameSite: 'None',
   path: '/',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
 // POST /api/auth/login

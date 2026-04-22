@@ -122,9 +122,12 @@ export const AppProvider = ({ children }) => {
   // ── Auth ───────────────────────────────────────────────────────────
   const login = async (email, password) => {
     await apiLogin(email, password);
-    // Give browser 500ms to fully commit the cookie before protected calls fire.
-    // This prevents instant redirect on slow Android devices (Vivo, Realme, Xiaomi).
-    await new Promise(r => setTimeout(r, 500));
+
+    // 🔥 VERIFY SESSION BEFORE PROCEEDING
+    // This ensures cookie is committed and readable by the server
+    // before we let the app navigate to protected routes.
+    await apiFetchMe();
+
     setIsLoggedIn(true);
   };
 

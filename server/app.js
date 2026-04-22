@@ -23,13 +23,16 @@ const ALLOWED_ORIGINS = [
 
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow requests with no origin (mobile app / direct API calls / Postman)
-    if (!origin) return cb(null, true);
-    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    // Also allow any *.vercel.app origin for preview deployments
-    if (origin.endsWith('.vercel.app')) return cb(null, true);
-    // Allow Android WebView (no origin header)
-    return cb(null, true); // Liberal for production stability
+    if (!origin) return cb(null, true); // allow mobile apps
+
+    if (
+      ALLOWED_ORIGINS.includes(origin) ||
+      origin.endsWith('.vercel.app')
+    ) {
+      return cb(null, true);
+    }
+
+    return cb(new Error('Not allowed by CORS')); // block unknown origins
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
