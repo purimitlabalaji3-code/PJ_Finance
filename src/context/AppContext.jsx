@@ -123,7 +123,11 @@ export const AppProvider = ({ children }) => {
   const login = async (email, password) => {
     const res = await apiLogin(email, password);
     if (res?.token) {
-      localStorage.setItem('pj_backup_token', res.token);
+      try {
+        localStorage.setItem('pj_backup_token', res.token);
+      } catch (e) {
+        console.warn('localStorage write failed:', e.message);
+      }
     }
 
     // 🔥 VERIFY SESSION BEFORE PROCEEDING

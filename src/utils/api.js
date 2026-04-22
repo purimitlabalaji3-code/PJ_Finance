@@ -38,7 +38,13 @@ const request = async (method, path, body, options = {}) => {
 
   while (attempt <= maxRetries) {
     try {
-      const token = localStorage.getItem('pj_backup_token');
+      let token = null;
+      try {
+        token = localStorage.getItem('pj_backup_token');
+      } catch (e) {
+        console.warn('localStorage blocked:', e.message);
+      }
+
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
