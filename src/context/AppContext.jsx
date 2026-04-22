@@ -66,8 +66,8 @@ const normalCustomer = (c) => ({
 
 export const AppProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => store.get('pj-theme') || 'dark');
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // Always logged in
-  const [sessionChecked, setSessionChecked] = useState(true); // No check needed
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   const [customers, setCustomers] = useState([]);
   const [loans, setLoans] = useState([]);
@@ -84,9 +84,49 @@ export const AppProvider = ({ children }) => {
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
-  // Authentication logic removed as per request
-  const login = async () => {};
-  const logout = async () => {};
+  // ── Session Check ──────────────────────────────────────────────────
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const user = await apiFetchMe();
+        if (user) setIsLoggedIn(true);
+      } catch (err) {
+        setIsLoggedIn(false);
+      } finally {
+        setSessionChecked(true);
+      }
+    };
+    checkSession();
+  }, []);
+
+  const login = async (email, password) => {
+    try {
+      const data = await apiLogin(email, password);
+      if (data.token) {
+        store.set('pj_backup_token', data.token); // Crucial for mobile webviews
+      }
+      setIsLoggedIn(true);
+      await loadAll();
+      return data;
+    } catch (err) {
+      setIsLoggedIn(false);
+      throw err;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await apiLogout();
+    } catch {
+      // Ignore
+    } finally {
+      store.remove('pj_backup_token');
+      setIsLoggedIn(false);
+      setCustomers([]);
+      setLoans([]);
+      setCollections([]);
+    }
+  };
 
   // ── Data Loading ───────────────────────────────────────────────────
   const loadAll = useCallback(async () => {
@@ -104,9 +144,10 @@ export const AppProvider = ({ children }) => {
       setCollections(Array.isArray(col) ? col.map(normalCollection) : []);
     } catch (err) {
       console.error('Load error:', err);
-      // If the token is missing or expired, the api.js 401 handler will auto-reload.
-      // For all other errors show a toast.
-      if (!err.message?.includes('Session expired') && !err.message?.includes('No token')) {
+      // If session is expired, force logout
+      if (err.message === 'Session expired' || err.message === 'No token') {
+        logout();
+      } else {
         toast.error('Failed to load data. Check your connection.');
       }
     } finally {

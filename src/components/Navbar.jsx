@@ -75,7 +75,7 @@ const Navbar = () => {
           onClick={toggleTheme}
           title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           className={`
-            relative flex items-center w-14 h-7 rounded-full p-1
+            relative flex items-center w-12 h-7 rounded-full p-1
             transition-all duration-300
             ${isDark
               ? 'bg-yellow-400/20 border border-yellow-400/30'
@@ -87,7 +87,7 @@ const Navbar = () => {
             w-5 h-5 rounded-full flex items-center justify-center
             transition-all duration-300 shadow-md
             ${isDark
-              ? 'translate-x-7 bg-yellow-400'
+              ? 'translate-x-5 bg-yellow-400'
               : 'translate-x-0 bg-primary-blue'
             }
           `}>
@@ -96,6 +96,15 @@ const Navbar = () => {
               : <Sun className="w-3 h-3 text-white" />
             }
           </span>
+        </button>
+
+        {/* Logout */}
+        <button
+          onClick={handleLogout}
+          className={`p-2 rounded-xl transition-colors ${isDark ? 'text-gray-400 hover:text-accent-red hover:bg-red-500/10' : 'text-gray-500 hover:bg-red-50 hover:text-red-600'}`}
+          title="Logout"
+        >
+          <LogOut className="w-5 h-5" />
         </button>
       </div>
     </header>

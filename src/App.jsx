@@ -15,6 +15,7 @@ const Collection  = lazy(() => import('@/pages/Collection'));
 const Reports     = lazy(() => import('@/pages/Reports'));
 const LoanDetail  = lazy(() => import('@/pages/LoanDetail'));
 const Settings    = lazy(() => import('@/pages/Settings'));
+const Login       = lazy(() => import('@/pages/Login'));
 
 /** Shows themed toasts */
 const ToasterWrapper = () => {
@@ -41,10 +42,28 @@ const App = () => {
   return (
     <AppProvider>
       <BrowserRouter>
-        <ToasterWrapper />
-        <Suspense fallback={<GlobalLoading />}>
-          <Routes>
-            {/* All routes are now public and rendered inside Layout */}
+        <AppContent />
+      </BrowserRouter>
+    </AppProvider>
+  );
+};
+
+const AppContent = () => {
+  const { isLoggedIn, sessionChecked } = useApp();
+
+  if (!sessionChecked) return <GlobalLoading />;
+
+  return (
+    <>
+      <ToasterWrapper />
+      <Suspense fallback={<GlobalLoading />}>
+        <Routes>
+          {!isLoggedIn ? (
+            <>
+              <Route path="/login" element={<Login />} />
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </>
+          ) : (
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/customers" element={<Customers />} />
@@ -55,14 +74,14 @@ const App = () => {
               <Route path="/collection" element={<Collection />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<Settings />} />
+              {/* Redirect /login to / if already logged in */}
+              <Route path="/login" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
-
-            {/* Catch-all */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </AppProvider>
+          )}
+        </Routes>
+      </Suspense>
+    </>
   );
 };
 
