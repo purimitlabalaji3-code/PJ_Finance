@@ -20,30 +20,52 @@ const COOKIE_OPTIONS = {
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password)
+    let { email, password } = req.body;
+    if (!email || !password) {
       return res.status(400).json({ error: 'Email and password required' });
+    }
 
-    // Match against ADMIN_EMAIL env variable
-    const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
-    if (email.toLowerCase().trim() !== adminEmail)
+    email = email.toLowerCase().trim();
+    const adminEmailEnv = process.env.ADMIN_EMAIL?.toLowerCase().trim();
+
+    // 1. Find admin in DB (by gmail or username)
+    // We try to match the email against the 'gmail' or 'username' column
+    const [admin] = await sql`
+      SELECT * FROM admin 
+      WHERE LOWER(gmail) = ${email} OR LOWER(username) = ${email}
+      LIMIT 1
+    `;
+
+    // 2. Fallback to hardcoded ADMIN_EMAIL if DB doesn't have it match
+    if (!admin && email !== adminEmailEnv) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
 
-    // Verify password against DB
-    const [admin] = await sql`SELECT * FROM admin LIMIT 1`;
-    if (!admin) return res.status(401).json({ error: 'Invalid credentials' });
+    // If we didn't find them in DB by email, just get the primary admin for password check
+    let targetAdmin = admin;
+    if (!targetAdmin) {
+      const [firstAdmin] = await sql`SELECT * FROM admin LIMIT 1`;
+      targetAdmin = firstAdmin;
+    }
 
-    const valid = await bcrypt.compare(password, admin.password);
+    if (!targetAdmin) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // 3. Verify password
+    const valid = await bcrypt.compare(password, targetAdmin.password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const token = jwt.sign({ id: admin.id, email }, SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: targetAdmin.id, email }, SECRET, { expiresIn: '7d' });
 
-    // Set HttpOnly cookie — browser sends it automatically on every request
+    // Set HttpOnly cookie
     res.cookie('pj_token', token, COOKIE_OPTIONS);
-    res.json({ email, token }); // Return token for frontend fallback
+    
+    // Return token for frontend backup (vital for Vivo/Realme/WebView)
+    res.json({ email, token });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Login Error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
