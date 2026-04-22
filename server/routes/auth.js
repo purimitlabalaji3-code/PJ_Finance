@@ -12,7 +12,7 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: true,
-  sameSite: 'None',
+  sameSite: 'lax', // Use 'lax' instead of 'None' to avoid third-party cookie blockers on Vivo/Realme
   path: '/',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
