@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 const store = {
   get: (key) => { try { return localStorage.getItem(key); } catch { return null; } },
   set: (key, val) => { try { localStorage.setItem(key, val); } catch { /* ignore */ } },
+  remove: (key) => { try { localStorage.removeItem(key); } catch { /* ignore */ } },
 };
 import {
   apiLogin, apiFetchMe, apiLogout,
@@ -123,11 +124,7 @@ export const AppProvider = ({ children }) => {
   const login = async (email, password) => {
     const res = await apiLogin(email, password);
     if (res?.token) {
-      try {
-        localStorage.setItem('pj_backup_token', res.token);
-      } catch (e) {
-        console.warn('localStorage write failed:', e.message);
-      }
+      store.set('pj_backup_token', res.token);
     }
 
     // 🔥 VERIFY SESSION BEFORE PROCEEDING
@@ -140,7 +137,7 @@ export const AppProvider = ({ children }) => {
 
   const logout = async () => {
     try { await apiLogout(); } catch { /* ignore */ }
-    localStorage.removeItem('pj_backup_token');
+    store.remove('pj_backup_token');
     setIsLoggedIn(false);
   };
 

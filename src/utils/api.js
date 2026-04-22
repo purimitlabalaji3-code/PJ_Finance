@@ -5,6 +5,26 @@ const SESSION_TIMEOUT = 20000; // 20s for session check (Vercel cold starts)
 
 
 /**
+ * Safe localStorage wrapper to prevent crashes in restricted environments
+ */
+const safeStorage = {
+  get: (key) => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      console.warn('localStorage blocked');
+      return null;
+    }
+  },
+  set: (key, value) => {
+    try { localStorage.setItem(key, value); } catch { /* ignore */ }
+  },
+  remove: (key) => {
+    try { localStorage.removeItem(key); } catch { /* ignore */ }
+  }
+};
+
+/**
  * Enhanced fetch with configurable timeout support
  */
 const fetchWithTimeout = async (url, options = {}, timeout = DEFAULT_TIMEOUT) => {
@@ -38,13 +58,7 @@ const request = async (method, path, body, options = {}) => {
 
   while (attempt <= maxRetries) {
     try {
-      let token = null;
-      try {
-        token = localStorage.getItem('pj_backup_token');
-      } catch (e) {
-        console.warn('localStorage blocked:', e.message);
-      }
-
+      const token = safeStorage.get('pj_backup_token');
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
