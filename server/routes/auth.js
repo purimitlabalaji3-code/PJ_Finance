@@ -41,17 +41,26 @@ router.post('/login', async (req, res) => {
 
   try {
     const sanitizedEmail = email.toLowerCase().trim();
+    const adminEmailEnv = process.env.ADMIN_EMAIL?.toLowerCase().trim();
     
     // 1. Precise Admin Identity Retrieval
     // We search across multiple identifiers (gmail, username) to support flexible login
-    const [adminUser] = await sql`
+    let [adminUser] = await sql`
       SELECT id, gmail, username, password 
       FROM admin 
       WHERE LOWER(gmail) = ${sanitizedEmail} OR LOWER(username) = ${sanitizedEmail}
       LIMIT 1
     `;
 
-    // 2. Authentication Verification
+    // 2. Fallback to Primary Admin by ENV or First Row
+    if (!adminUser) {
+      // If the email matches the ENV, we allow the primary admin row to be used
+      if (sanitizedEmail === adminEmailEnv) {
+        [adminUser] = await sql`SELECT id, gmail, username, password FROM admin ORDER BY id ASC LIMIT 1`;
+      }
+    }
+
+    // 3. Authentication Verification
     if (!adminUser) {
       return res.status(401).json({ success: false, error: 'Identity not recognized' });
     }

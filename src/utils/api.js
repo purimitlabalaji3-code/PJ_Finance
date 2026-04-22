@@ -83,7 +83,7 @@ const request = async (method, path, body, options = {}) => {
       }
 
       if (res.status === 401) {
-        throw new Error('Session expired');
+        throw new Error(path.includes('/login') ? 'Invalid credentials' : 'Session expired');
       }
 
       if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
