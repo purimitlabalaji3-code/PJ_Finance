@@ -12,6 +12,8 @@ import collectionRoutes from './routes/collections.js';
 import settingsRoutes   from './routes/settings.js';
 
 const app = express();
+app.set('trust proxy', 1); // Necessary for Secure cookies behind Vercel proxy
+
 
 // CORS — explicit origins required for SameSite:None cookies on Android WebViews
 const ALLOWED_ORIGINS = [

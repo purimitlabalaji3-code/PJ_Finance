@@ -38,12 +38,16 @@ const request = async (method, path, body, options = {}) => {
 
   while (attempt <= maxRetries) {
     try {
+      const token = localStorage.getItem('pj_backup_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetchWithTimeout(
         `${BASE}${path}`,
         {
           method,
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           ...(body ? { body: JSON.stringify(body) } : {}),
         },
         timeout

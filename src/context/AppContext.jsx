@@ -121,7 +121,10 @@ export const AppProvider = ({ children }) => {
 
   // ── Auth ───────────────────────────────────────────────────────────
   const login = async (email, password) => {
-    await apiLogin(email, password);
+    const res = await apiLogin(email, password);
+    if (res?.token) {
+      localStorage.setItem('pj_backup_token', res.token);
+    }
 
     // 🔥 VERIFY SESSION BEFORE PROCEEDING
     // This ensures cookie is committed and readable by the server
@@ -133,6 +136,7 @@ export const AppProvider = ({ children }) => {
 
   const logout = async () => {
     try { await apiLogout(); } catch { /* ignore */ }
+    localStorage.removeItem('pj_backup_token');
     setIsLoggedIn(false);
   };
 

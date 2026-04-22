@@ -11,10 +11,10 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: true,
-  sameSite: 'lax', // Use 'lax' instead of 'None' to avoid third-party cookie blockers on Vivo/Realme
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
   path: '/',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
 // POST /api/auth/login
@@ -40,7 +40,7 @@ router.post('/login', async (req, res) => {
 
     // Set HttpOnly cookie — browser sends it automatically on every request
     res.cookie('pj_token', token, COOKIE_OPTIONS);
-    res.json({ email });
+    res.json({ email, token }); // Return token for frontend fallback
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
