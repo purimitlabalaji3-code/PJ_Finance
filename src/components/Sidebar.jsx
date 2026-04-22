@@ -23,77 +23,93 @@ const Sidebar = () => {
     <aside
       className={`
         hidden md:flex flex-col
-        w-60 xl:w-64 flex-shrink-0 h-full
+        w-64 xl:w-72 flex-shrink-0 h-full relative z-20
         ${isDark
-          ? 'bg-dark-card border-r border-dark-border'
-          : 'bg-white border-r border-light-border'
+          ? 'bg-black/20 border-r border-white/5'
+          : 'bg-white/40 border-r border-gray-200 shadow-xl'
         }
+        backdrop-blur-xl transition-all duration-500
       `}
     >
-      {/* Logo */}
-      <div className={`flex items-center gap-3 px-5 py-5 border-b ${isDark ? 'border-dark-border' : 'border-light-border'}`}>
-        <img 
-          src="/logo.png" 
-          alt="PJ Finance" 
-          className={`w-10 h-10 rounded-xl object-contain shadow-sm transition-all duration-300 ${isDark ? 'bg-white/10' : 'invert hue-rotate-180 brightness-110'}`} 
-        />
-        <div>
-          <h1 className={`font-bold text-base leading-none ${isDark ? 'text-white' : 'text-gray-900'}`}>PJ Finance</h1>
-          <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Loan Management</p>
+      {/* Brand Section */}
+      <div className={`px-7 py-8 mb-4`}>
+        <div className="flex items-center gap-4 group cursor-pointer">
+          <div className={`
+             w-12 h-12 rounded-2xl flex items-center justify-center 
+             shadow-lg transform transition duration-500 group-hover:rotate-12
+             ${isDark ? 'bg-white/10' : 'bg-white shadow-blue-500/10'}
+          `}>
+            <img src="/logo.png" alt="PJ Finance" className="w-8 h-8 object-contain" />
+          </div>
+          <div>
+            <h1 className={`font-black text-lg tracking-tight leading-none ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              PJ Finance
+            </h1>
+            <p className={`text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50 ${isDark ? 'text-yellow-400' : 'text-blue-600'}`}>
+              Enterprise
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 overflow-y-auto">
-        <p className={`text-[10px] font-bold uppercase tracking-widest px-3 mb-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>Menu</p>
-        <ul className="space-y-0.5">
-          {navItems.map(({ path, icon: Icon, label }) => (
-            <li key={path}>
-              <NavLink
-                to={path}
-                end={path === '/'}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
-                  ${isActive
-                    ? isDark
-                      ? 'bg-yellow-400/10 text-yellow-400'
-                      : 'bg-blue-50 text-primary-blue'
-                    : isDark
-                      ? 'text-gray-400 hover:bg-dark-muted hover:text-gray-200'
-                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                      isActive
-                        ? isDark ? 'bg-yellow-400/20' : 'bg-blue-100'
-                        : isDark ? 'bg-dark-muted' : 'bg-gray-100'
-                    }`}>
-                      <Icon className="w-4 h-4" />
-                    </span>
-                    {label}
-                    {isActive && (
-                      <span className={`ml-auto w-1.5 h-1.5 rounded-full ${isDark ? 'bg-yellow-400' : 'bg-primary-blue'}`} />
-                    )}
-                  </>
-                )}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
+      <nav className="flex-1 px-4 space-y-6 overflow-y-auto no-scrollbar">
+        <div>
+          <p className={`text-[10px] font-black uppercase tracking-[0.2em] px-4 mb-4 opacity-40 ${isDark ? 'text-white' : 'text-black'}`}>
+            Operations
+          </p>
+          <ul className="space-y-1.5">
+            {navItems.map(({ path, icon: Icon, label }) => (
+              <li key={path}>
+                <NavLink
+                  to={path}
+                  end={path === '/'}
+                  className={({ isActive }) =>
+                    `group flex items-center gap-4 px-4 py-3.5 rounded-[1.25rem] text-sm font-bold transition-all duration-300
+                    ${isActive
+                      ? isDark
+                        ? 'bg-yellow-400 text-black shadow-lg shadow-yellow-400/20'
+                        : 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                      : isDark
+                        ? 'text-gray-400 hover:bg-white/5 hover:text-white'
+                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Icon className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'opacity-100' : 'opacity-60'}`} />
+                      <span className="tracking-wide">{label}</span>
+                      {isActive && (
+                        <div className={`ml-auto w-1.5 h-1.5 rounded-full ${isDark ? 'bg-black' : 'bg-white'}`} />
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </div>
       </nav>
 
-      {/* Admin Footer */}
-      <div className={`px-4 py-4 border-t ${isDark ? 'border-dark-border' : 'border-light-border'}`}>
-        <div className={`flex items-center gap-3 p-3 rounded-xl ${isDark ? 'bg-dark-muted' : 'bg-gray-50'}`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${isDark ? 'bg-yellow-400 text-black' : 'bg-primary-blue text-white'}`}>
-            AD
+      {/* Admin Profile */}
+      <div className={`px-4 py-6`}>
+        <div className={`
+          flex items-center gap-4 p-4 rounded-[1.5rem] border
+          ${isDark 
+            ? 'bg-white/5 border-white/10' 
+            : 'bg-white border-gray-100 shadow-sm'
+          }
+        `}>
+          <div className="relative">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shadow-inner ${isDark ? 'bg-yellow-400 text-black' : 'bg-blue-600 text-white'}`}>
+              AD
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-current" />
           </div>
           <div className="min-w-0">
-            <p className={`text-sm font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>Admin</p>
-            <p className={`text-xs truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>pjfinance.in</p>
+            <p className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>Admin User</p>
+            <p className={`text-[10px] font-bold opacity-40 truncate ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>ADMIN_CONSOLE_V2</p>
           </div>
         </div>
       </div>

@@ -18,25 +18,37 @@ const StatCard = ({ title, value, icon: Icon, change, changeType, color, prefix 
   const isPositive = changeType === 'up';
 
   return (
-    <Card className="group hover:scale-[1.02] transition-transform duration-200 cursor-default px-4 py-4 sm:p-5">
-      <div className="flex items-start justify-between mb-3 sm:mb-4">
-        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
-          <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+    <Card className={`
+      group relative overflow-hidden transition-all duration-500 hover:-translate-y-1 cursor-default px-6 py-6
+      ${isDark ? 'hover:bg-white/5' : 'hover:bg-white shadow-lg shadow-blue-500/5'}
+    `}>
+      {/* Decorative accent */}
+      <div className={`absolute top-0 right-0 w-16 h-16 opacity-[0.03] transition-all duration-500 group-hover:scale-150 ${color}`} style={{ borderRadius: '0 0 0 100%' }} />
+      
+      <div className="flex items-start justify-between mb-6 relative z-10">
+        <div className={`w-14 h-14 rounded-[1.25rem] flex items-center justify-center flex-shrink-0 transition-transform duration-500 group-hover:rotate-6 ${color} shadow-lg shadow-current/10`}>
+          <Icon className="w-7 h-7" />
         </div>
-        <span className={`flex flex-shrink-0 items-center gap-0.5 text-[10px] sm:text-xs font-bold px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full ${
-          isPositive
-            ? isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'
-            : isDark ? 'bg-red-500/10 text-accent-red' : 'bg-red-50 text-red-600'
-        }`}>
+        <div className={`
+          flex flex-shrink-0 items-center gap-1 font-black px-2.5 py-1 rounded-lg text-[10px] tracking-tighter
+          ${isPositive
+            ? isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-100 text-green-700'
+            : isDark ? 'bg-red-500/10 text-red-400' : 'bg-red-100 text-red-700'
+          }
+        `}>
           {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
           {change}
-        </span>
+        </div>
       </div>
-      <div>
-        <p className={`text-xl sm:text-2xl font-bold mb-0.5 sm:mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          {prefix}{typeof value === 'number' ? value.toLocaleString('en-IN') : value}
+      
+      <div className="relative z-10">
+        <p className={`text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-50 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          {title}
         </p>
-        <p className={`text-xs sm:text-sm font-medium leading-tight ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{title}</p>
+        <p className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <span className="text-sm font-bold opacity-30 mr-1">{prefix}</span>
+          {typeof value === 'number' ? value.toLocaleString('en-IN') : value}
+        </p>
       </div>
     </Card>
   );

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Eye, EyeOff, Lock, Mail, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Login = () => {
@@ -11,6 +11,11 @@ const Login = () => {
   const [showPass, setShowPass] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const set = (field) => (e) => {
     setForm(p => ({ ...p, [field]: e.target.value }));
@@ -19,8 +24,8 @@ const Login = () => {
 
   const validate = () => {
     const e = {};
-    if (!form.email.trim()) e.email = 'Email is required';
-    if (!form.password.trim()) e.password = 'Password is required';
+    if (!form.email.trim()) e.email = 'Required';
+    if (!form.password.trim()) e.password = 'Required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -31,106 +36,170 @@ const Login = () => {
     setLoading(true);
     try {
       await login(form.email.trim(), form.password);
-      toast.success('Welcome back, Admin! 👋');
+      toast.success('Welcome back, Admin!', {
+        icon: '💎',
+        style: {
+          borderRadius: '1rem',
+          background: isDark ? '#1F2937' : '#FFFFFF',
+          color: isDark ? '#F9FAFB' : '#111827',
+        },
+      });
     } catch (err) {
       toast.error(err.message || 'Invalid credentials');
-      setErrors({ password: err.message || 'Invalid email or password' });
+      setErrors({ password: 'Login failed' });
     } finally {
       setLoading(false);
     }
   };
 
-  const inputCls = `w-full pl-10 pr-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200 ${
-    isDark
-      ? 'bg-dark-muted border-dark-border text-white placeholder-gray-600 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20'
-      : 'bg-gray-50 border-light-border text-gray-900 placeholder-gray-400 focus:border-primary-blue focus:ring-2 focus:ring-blue-500/20'
-  }`;
-
   return (
-    <div className={`min-h-screen flex flex-col items-center justify-center px-4 py-10 ${isDark ? 'bg-dark-bg' : 'bg-light-bg'}`}>
-      <div className={`w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden ${isDark ? 'bg-dark-card border-dark-border' : 'bg-white border-light-border'}`}>
-
-        {/* Header */}
-        <div className={`px-6 py-8 text-center border-b ${isDark ? 'bg-yellow-400/5 border-dark-border' : 'bg-blue-50 border-light-border'}`}>
-          <div className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-lg overflow-hidden`}>
-            <img src="/logo.png" alt="PJ Finance" className="w-full h-full object-contain" />
-          </div>
-          <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>PJ Finance</h1>
-          <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Loan Collection Admin Panel</p>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="px-6 py-7 space-y-4">
-
-          {/* Email */}
-          <div>
-            <label className={`block text-xs font-semibold mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              Email Address
-            </label>
-            <div className="relative">
-              <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="admin@pjfinance.com"
-                value={form.email}
-                onChange={set('email')}
-                className={`${inputCls} ${errors.email ? 'border-red-500 focus:border-red-500' : ''}`}
-              />
-            </div>
-            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
-          </div>
-
-          {/* Password */}
-          <div>
-            <label className={`block text-xs font-semibold mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              Password
-            </label>
-            <div className="relative">
-              <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
-              <input
-                id="password"
-                type={showPass ? 'text' : 'password'}
-                autoComplete="current-password"
-                placeholder="••••••••"
-                value={form.password}
-                onChange={set('password')}
-                className={`${inputCls} pr-10 ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPass(p => !p)}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
-          </div>
-
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all duration-200 active:scale-95 mt-2
-              ${loading ? 'opacity-60 cursor-not-allowed' : ''}
-              ${isDark
-                ? 'bg-yellow-400 hover:bg-yellow-300 text-black shadow-lg shadow-yellow-400/20'
-                : 'bg-primary-blue hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20'
-              }`}
-          >
-            {loading
-              ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              : <><span>Sign In</span><ArrowRight className="w-4 h-4" /></>
-            }
-          </button>
-        </form>
+    <div className={`min-h-screen flex flex-col items-center justify-center relative overflow-hidden transition-colors duration-700 ${isDark ? 'bg-[#050505]' : 'bg-[#F3F4F6]'}`}>
+      
+      {/* Dynamic Background Elements */}
+      <div className="absolute inset-0 z-0">
+        <div className={`absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] opacity-40 animate-pulse ${isDark ? 'bg-yellow-500/20' : 'bg-blue-400/20'}`} />
+        <div className={`absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] opacity-40 animate-pulse delay-700 ${isDark ? 'bg-orange-500/10' : 'bg-purple-400/20'}`} />
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-[0.03] ${isDark ? 'invert-0' : 'invert'}`} 
+             style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
       </div>
 
-      <p className={`mt-6 text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-        © 2026 PJ Finance. All rights reserved.
-      </p>
+      <div className={`w-full max-w-md px-6 z-10 transition-all duration-1000 transform ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
+        
+        {/* Glass Card */}
+        <div className={`
+          relative backdrop-blur-2xl rounded-[2.5rem] border shadow-2xl overflow-hidden
+          ${isDark 
+            ? 'bg-white/5 border-white/10 shadow-black/50' 
+            : 'bg-white/70 border-white shadow-blue-500/10'
+          }
+        `}>
+          
+          {/* Header Section */}
+          <div className="relative px-8 pt-10 pb-6 text-center">
+            <div className="relative inline-block mb-6 group">
+              <div className={`absolute -inset-4 rounded-full blur-xl opacity-40 group-hover:opacity-70 transition duration-500 ${isDark ? 'bg-yellow-400' : 'bg-blue-500'}`} />
+              <div className={`
+                relative w-20 h-20 rounded-3xl mx-auto flex items-center justify-center 
+                transform transition duration-500 group-hover:scale-110 group-hover:rotate-3 shadow-2xl overflow-hidden
+                ${isDark ? 'bg-dark-muted' : 'bg-white'}
+              `}>
+                <img src="/logo.png" alt="PJ Finance" className="w-14 h-14 object-contain" />
+              </div>
+              <Sparkles className={`absolute -top-1 -right-1 w-6 h-6 animate-bounce ${isDark ? 'text-yellow-400' : 'text-blue-500'}`} />
+            </div>
+            
+            <h1 className={`text-4xl font-extrabold tracking-tight mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              PJ Finance
+            </h1>
+            <p className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              Premium Loan Management Console
+            </p>
+          </div>
+
+          {/* Form Section */}
+          <form onSubmit={handleSubmit} className="px-8 pb-10 space-y-6">
+            
+            <div className="space-y-4">
+              {/* Email Input */}
+              <div className="group">
+                <label className={`block text-xs font-bold uppercase tracking-widest mb-2 ml-1 transition-colors ${isDark ? 'text-gray-500 group-focus-within:text-yellow-400' : 'text-gray-400 group-focus-within:text-blue-600'}`}>
+                  Admin Access
+                </label>
+                <div className="relative">
+                  <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-yellow-400' : 'text-gray-400 group-focus-within:text-blue-600'}`} />
+                  <input
+                    type="email"
+                    placeholder="Email Address"
+                    value={form.email}
+                    onChange={set('email')}
+                    className={`
+                      w-full pl-12 pr-4 py-4 rounded-2xl border-2 outline-none transition-all duration-300 font-medium
+                      ${isDark 
+                        ? 'bg-black/20 border-white/5 text-white placeholder-gray-600 focus:border-yellow-400/50 focus:bg-black/40' 
+                        : 'bg-white/50 border-gray-100 text-gray-900 placeholder-gray-400 focus:border-blue-500/50 focus:bg-white'
+                      }
+                      ${errors.email ? 'border-red-500/50 focus:border-red-500' : ''}
+                    `}
+                  />
+                </div>
+              </div>
+
+              {/* Password Input */}
+              <div className="group">
+                <div className="flex justify-between items-end mb-2 ml-1">
+                  <label className={`block text-xs font-bold uppercase tracking-widest transition-colors ${isDark ? 'text-gray-500 group-focus-within:text-yellow-400' : 'text-gray-400 group-focus-within:text-blue-600'}`}>
+                    Secure Key
+                  </label>
+                </div>
+                <div className="relative">
+                  <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-yellow-400' : 'text-gray-400 group-focus-within:text-blue-600'}`} />
+                  <input
+                    type={showPass ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={form.password}
+                    onChange={set('password')}
+                    className={`
+                      w-full pl-12 pr-12 py-4 rounded-2xl border-2 outline-none transition-all duration-300 font-medium
+                      ${isDark 
+                        ? 'bg-black/20 border-white/5 text-white placeholder-gray-600 focus:border-yellow-400/50 focus:bg-black/40' 
+                        : 'bg-white/50 border-gray-100 text-gray-900 placeholder-gray-400 focus:border-blue-500/50 focus:bg-white'
+                      }
+                      ${errors.password ? 'border-red-500/50 focus:border-red-500' : ''}
+                    `}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(p => !p)}
+                    className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors hover:scale-110 active:scale-90 ${isDark ? 'text-gray-600 hover:text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    {showPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Remember & Forgot Logic could go here */}
+
+            {/* Login Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={`
+                relative w-full py-4 rounded-2xl font-bold text-base transition-all duration-300 transform active:scale-[0.98]
+                flex items-center justify-center gap-3 group overflow-hidden
+                ${isDark
+                  ? 'bg-yellow-400 text-black hover:bg-yellow-300 shadow-[0_10px_20px_-10px_rgba(250,204,21,0.5)]'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 shadow-[0_10px_20px_-10px_rgba(37,99,235,0.5)]'
+                }
+                ${loading ? 'opacity-80 cursor-not-allowed' : ''}
+              `}
+            >
+              <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 skew-x-[-20deg]" />
+              {loading ? (
+                <div className="w-6 h-6 border-3 border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span>Authenticating</span>
+                  <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Footer Info */}
+          <div className={`px-8 py-4 text-center border-t flex items-center justify-center gap-2 ${isDark ? 'bg-white/5 border-white/5 text-gray-500' : 'bg-gray-50/50 border-gray-100 text-gray-400'}`}>
+            <ShieldCheck className="w-4 h-4" />
+            <span className="text-[10px] uppercase font-bold tracking-widest">End-to-End Encrypted Session</span>
+          </div>
+        </div>
+
+        {/* System Copyright */}
+        <div className={`mt-8 text-center transition-all duration-1000 delay-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+           <p className={`text-xs font-medium tracking-wide ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+            &copy; 2026 PJ FINANCE &bull; ENTERPRISE SECURE ACCESS
+          </p>
+        </div>
+      </div>
     </div>
   );
 };

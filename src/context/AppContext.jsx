@@ -88,8 +88,10 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const user = await apiFetchMe();
-        if (user) setIsLoggedIn(true);
+        const response = await apiFetchMe();
+        if (response.success && response.user) {
+          setIsLoggedIn(true);
+        }
       } catch (err) {
         setIsLoggedIn(false);
       } finally {
@@ -101,13 +103,13 @@ export const AppProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const data = await apiLogin(email, password);
-      if (data.token) {
-        store.set('pj_backup_token', data.token); // Crucial for mobile webviews
+      const response = await apiLogin(email, password);
+      if (response.success && response.session?.token) {
+        store.set('pj_backup_token', response.session.token); // Secure mobile fallback
       }
       setIsLoggedIn(true);
       await loadAll();
-      return data;
+      return response;
     } catch (err) {
       setIsLoggedIn(false);
       throw err;

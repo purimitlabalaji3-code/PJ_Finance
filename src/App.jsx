@@ -50,11 +50,18 @@ const App = () => {
 
 const AppContent = () => {
   const { isLoggedIn, sessionChecked } = useApp();
+  const [fade, setFade] = React.useState(false);
+
+  React.useEffect(() => {
+    if (sessionChecked) {
+      setTimeout(() => setFade(true), 50);
+    }
+  }, [sessionChecked, isLoggedIn]);
 
   if (!sessionChecked) return <GlobalLoading />;
 
   return (
-    <>
+    <div className={`transition-opacity duration-700 ${fade ? 'opacity-100' : 'opacity-0'}`}>
       <ToasterWrapper />
       <Suspense fallback={<GlobalLoading />}>
         <Routes>
@@ -81,7 +88,7 @@ const AppContent = () => {
           )}
         </Routes>
       </Suspense>
-    </>
+    </div>
   );
 };
 
