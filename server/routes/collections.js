@@ -57,7 +57,7 @@ router.get('/loan/:loanId', auth, async (req, res) => {
 router.post('/generate', auth, async (req, res) => {
   try {
     const date = req.query.date || new Date().toISOString().split('T')[0];
-    const activeLoans = await sql`SELECT * FROM loans WHERE status = 'Active' AND (loan_type = 'Daily' OR loan_type IS NULL)`;
+    const activeLoans = await sql`SELECT * FROM loans WHERE status = 'Active' AND (loan_type = 'Daily' OR loan_type IS NULL) AND start_date <= ${date}`;
 
     let generated = 0;
     for (const loan of activeLoans) {
