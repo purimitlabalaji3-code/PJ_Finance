@@ -229,6 +229,7 @@ const Login = () => {
                   width="100%"
                   size="large"
                   text="continue_with"
+                  uxMode="redirect"
                 />
               </div>
             </div>
