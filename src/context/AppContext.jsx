@@ -73,7 +73,7 @@ const normalCustomer = (c) => ({
 export const AppProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => store.get('pj-theme') || 'dark');
   const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const [sessionChecked, setSessionChecked] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(true); // Always ready — no login needed
 
   const [customers, setCustomers] = useState([]);
   const [loans, setLoans] = useState([]);
@@ -91,22 +91,8 @@ export const AppProvider = ({ children }) => {
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
-  // ── Session Check ──────────────────────────────────────────────────
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const response = await apiFetchMe();
-        if (response.success && response.user) {
-          setIsLoggedIn(true);
-        }
-      } catch (err) {
-        setIsLoggedIn(false);
-      } finally {
-        setSessionChecked(true);
-      }
-    };
-    checkSession();
-  }, []);
+  // ── Session Check (Bypassed — App opens directly to Dashboard) ─────
+  // Login is disabled. Data loads automatically on startup.
 
   const login = async (email, password) => {
     try {
@@ -154,7 +140,6 @@ export const AppProvider = ({ children }) => {
 
   // ── Data Loading ───────────────────────────────────────────────────
   const loadAll = useCallback(async () => {
-    if (!isLoggedIn) return;
     setLoading(true);
     try {
       // Auto-generate collections for the current selected date
@@ -186,7 +171,6 @@ export const AppProvider = ({ children }) => {
   // Handle changing collection date manually (re-fetches only collections to save bandwidth)
   const changeCollectionDate = async (newDate) => {
     setCollectionDate(newDate);
-    if (!isLoggedIn) return;
     setLoading(true);
     try {
       // Auto-generate collections for the selected date
