@@ -83,11 +83,11 @@ const Login = () => {
              style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
       </div>
 
-      <div className={`w-full max-w-md px-6 z-10 transition-all duration-1000 transform ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
+      <div className={`w-full max-w-sm px-4 z-10 transition-all duration-1000 transform ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
         
         {/* Glass Card */}
         <div className={`
-          relative backdrop-blur-2xl rounded-[2.5rem] border shadow-2xl overflow-hidden
+          relative backdrop-blur-2xl rounded-[2rem] border shadow-2xl overflow-hidden
           ${isDark 
             ? 'bg-white/5 border-white/10 shadow-black/50' 
             : 'bg-white/70 border-white shadow-blue-500/10'
@@ -95,20 +95,20 @@ const Login = () => {
         `}>
           
           {/* Header Section */}
-          <div className="relative px-8 pt-10 pb-6 text-center">
-            <div className="relative inline-block mb-6 group">
+          <div className="relative px-6 pt-8 pb-4 text-center">
+            <div className="relative inline-block mb-4 group">
               <div className={`absolute -inset-4 rounded-full blur-xl opacity-40 group-hover:opacity-70 transition duration-500 ${isDark ? 'bg-yellow-400' : 'bg-blue-500'}`} />
               <div className={`
                 relative w-20 h-20 rounded-3xl mx-auto flex items-center justify-center 
                 transform transition duration-500 group-hover:scale-110 group-hover:rotate-3 shadow-2xl overflow-hidden
                 ${isDark ? 'bg-dark-muted' : 'bg-white'}
               `}>
-                <img src="/logo.png" alt="PJ Finance" className="w-14 h-14 object-contain" />
+                <img src="/logo.png" alt="PJ Finance" className="w-12 h-12 object-contain" />
               </div>
-              <Sparkles className={`absolute -top-1 -right-1 w-6 h-6 animate-bounce ${isDark ? 'text-yellow-400' : 'text-blue-500'}`} />
+              <Sparkles className={`absolute -top-1 -right-1 w-5 h-5 animate-bounce ${isDark ? 'text-yellow-400' : 'text-blue-500'}`} />
             </div>
             
-            <h1 className={`text-4xl font-extrabold tracking-tight mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <h1 className={`text-3xl font-extrabold tracking-tight mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               PJ Finance
             </h1>
             <p className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -117,7 +117,7 @@ const Login = () => {
           </div>
 
           {/* Form Section */}
-          <form onSubmit={handleSubmit} className="px-8 pb-10 space-y-6">
+          <form onSubmit={handleSubmit} className="px-6 pb-8 space-y-4">
             
             <div className="space-y-4">
               {/* Email Input */}
@@ -126,14 +126,14 @@ const Login = () => {
                   Admin Access
                 </label>
                 <div className="relative">
-                  <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-yellow-400' : 'text-gray-400 group-focus-within:text-blue-600'}`} />
+                  <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-yellow-400' : 'text-gray-400 group-focus-within:text-blue-600'}`} />
                   <input
                     type="email"
                     placeholder="Email Address"
                     value={form.email}
                     onChange={set('email')}
                     className={`
-                      w-full pl-12 pr-4 py-4 rounded-2xl border-2 outline-none transition-all duration-300 font-medium
+                      w-full pl-10 pr-4 py-3 rounded-xl border-2 outline-none transition-all duration-300 font-medium text-sm
                       ${isDark 
                         ? 'bg-black/20 border-white/5 text-white placeholder-gray-600 focus:border-yellow-400/50 focus:bg-black/40' 
                         : 'bg-white/50 border-gray-100 text-gray-900 placeholder-gray-400 focus:border-blue-500/50 focus:bg-white'
@@ -152,14 +152,14 @@ const Login = () => {
                   </label>
                 </div>
                 <div className="relative">
-                  <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-yellow-400' : 'text-gray-400 group-focus-within:text-blue-600'}`} />
+                  <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-yellow-400' : 'text-gray-400 group-focus-within:text-blue-600'}`} />
                   <input
                     type={showPass ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={form.password}
                     onChange={set('password')}
                     className={`
-                      w-full pl-12 pr-12 py-4 rounded-2xl border-2 outline-none transition-all duration-300 font-medium
+                      w-full pl-10 pr-10 py-3 rounded-xl border-2 outline-none transition-all duration-300 font-medium text-sm
                       ${isDark 
                         ? 'bg-black/20 border-white/5 text-white placeholder-gray-600 focus:border-yellow-400/50 focus:bg-black/40' 
                         : 'bg-white/50 border-gray-100 text-gray-900 placeholder-gray-400 focus:border-blue-500/50 focus:bg-white'
@@ -185,7 +185,7 @@ const Login = () => {
               type="submit"
               disabled={loading}
               className={`
-                relative w-full py-4 rounded-2xl font-bold text-base transition-all duration-300 transform active:scale-[0.98]
+                relative w-full py-3 rounded-xl font-bold text-sm transition-all duration-300 transform active:scale-[0.98]
                 flex items-center justify-center gap-3 group overflow-hidden
                 ${isDark
                   ? 'bg-yellow-400 text-black hover:bg-yellow-300 shadow-[0_10px_20px_-10px_rgba(250,204,21,0.5)]'
@@ -200,13 +200,13 @@ const Login = () => {
               ) : (
                 <>
                   <span>Authenticating</span>
-                  <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+                  <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </>
               )}
             </button>
 
             {/* Divider */}
-            <div className="relative py-2">
+            <div className="relative py-1">
               <div className="absolute inset-0 flex items-center">
                 <div className={`w-full border-t ${isDark ? 'border-white/10' : 'border-gray-200'}`} />
               </div>
