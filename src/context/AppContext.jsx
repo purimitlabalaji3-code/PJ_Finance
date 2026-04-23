@@ -78,6 +78,7 @@ export const AppProvider = ({ children }) => {
   const [customers, setCustomers] = useState([]);
   const [loans, setLoans] = useState([]);
   const [collections, setCollections] = useState([]);
+  const [collectionDate, setCollectionDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
 
   // ── Theme ──────────────────────────────────────────────────────────
@@ -156,11 +157,10 @@ export const AppProvider = ({ children }) => {
     if (!isLoggedIn) return;
     setLoading(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
       const [c, l, col] = await Promise.all([
         apiFetchCustomers(),
         apiFetchLoans(),
-        apiFetchCollections(today),
+        apiFetchCollections(collectionDate),
       ]);
       setCustomers(Array.isArray(c) ? c.map(normalCustomer) : []);
       setLoans(Array.isArray(l) ? l.map(normalLoan) : []);
@@ -176,9 +176,24 @@ export const AppProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, collectionDate]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  // Handle changing collection date manually (re-fetches only collections to save bandwidth)
+  const changeCollectionDate = async (newDate) => {
+    setCollectionDate(newDate);
+    if (!isLoggedIn) return;
+    setLoading(true);
+    try {
+      const col = await apiFetchCollections(newDate);
+      setCollections(Array.isArray(col) ? col.map(normalCollection) : []);
+    } catch (err) {
+      toast.error('Failed to load collections for selected date');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ── Customer CRUD ──────────────────────────────────────────────────
   const addCustomer = async (customer) => {
@@ -258,7 +273,7 @@ export const AppProvider = ({ children }) => {
       customers, addCustomer, updateCustomer, deleteCustomer,
       loans, addLoan, deleteLoan,
       collections, setCollections, markCollectionPaid, markCollectionPending,
-      generateCollections, addManualCollection,
+      generateCollections, addManualCollection, collectionDate, changeCollectionDate,
       loading, loadAll,
       stats,
     }}>

@@ -18,6 +18,7 @@ const LoanDetail = () => {
   const [history, setHistory] = useState([]);
   const [histLoading, setHistLoading] = useState(false);
   const [manualAmt, setManualAmt] = useState('');
+  const [manualDate, setManualDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [submitting, setSubmitting] = useState(false);
 
   const isTerm = loan && loan.loanType !== 'Daily';
@@ -68,7 +69,7 @@ const LoanDetail = () => {
       // Actually we have addManualCollection in useApp, wait... I didn't extract it. 
       // I'll just use fetch directly or window.location.reload()
       const { apiAddManualCollection } = await import('../utils/api');
-      await apiAddManualCollection({ loanId: loan.id, amount: manualAmt });
+      await apiAddManualCollection({ loanId: loan.id, amount: manualAmt, date: manualDate });
       toast.success('Payment added! ✅');
       window.location.reload();
     } catch (err) {
@@ -143,7 +144,13 @@ const LoanDetail = () => {
       {isTerm && (
         <Card className={`border-2 ${isDark ? 'border-yellow-400/30' : 'border-blue-200'}`}>
           <h3 className={`font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>Record Manual Payment</h3>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input 
+              type="date" 
+              value={manualDate} 
+              onChange={e => setManualDate(e.target.value)}
+              className={`sm:w-40 px-4 py-2 rounded-xl border text-sm ${isDark ? 'bg-dark-muted border-dark-border text-white' : 'bg-white border-light-border text-gray-900'}`}
+            />
             <input 
               type="number" 
               placeholder={`e.g. ${loan.dailyAmount}`} 

@@ -128,18 +128,17 @@ const CollectionRow = ({ entry, isDark }) => {
 };
 
 const Collection = () => {
-  const { collections, customers, theme, generateCollections } = useApp();
+  const { collections, customers, theme, generateCollections, collectionDate, changeCollectionDate } = useApp();
   const isDark = theme === 'dark';
-  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const todayISO = new Date().toISOString().split('T')[0];
+  const displayDate = new Date(collectionDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const [searchTerm, setSearchTerm] = useState('');
   const [generating, setGenerating] = useState(false);
 
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      const result = await generateCollections(todayISO);
-      toast.success(result?.message || 'Collections generated for today! ✅');
+      const result = await generateCollections(collectionDate);
+      toast.success(result?.message || `Collections generated for ${collectionDate}! ✅`);
     } catch (err) {
       toast.error(err.message || 'Failed to generate collections');
     } finally {
@@ -168,12 +167,20 @@ const Collection = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Daily Collection</h2>
-          <div className={`flex items-center gap-1.5 text-sm mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            <Calendar className="w-4 h-4" />
-            <span>{today}</span>
+          <div className="flex items-center gap-2 mt-1">
+            <input 
+              type="date" 
+              value={collectionDate}
+              onChange={(e) => changeCollectionDate(e.target.value)}
+              className={`px-3 py-1.5 text-sm font-semibold rounded-lg border outline-none cursor-pointer transition-colors ${
+                isDark 
+                  ? 'bg-dark-muted border-dark-border text-yellow-400 hover:border-yellow-400/50 focus:border-yellow-400' 
+                  : 'bg-white border-light-border text-primary-blue hover:border-blue-400 focus:border-primary-blue'
+              }`}
+            />
           </div>
         </div>
-        {/* Generate Today's Collections */}
+        {/* Generate Collections */}
         <button
           onClick={handleGenerate}
           disabled={generating}
@@ -189,7 +196,7 @@ const Collection = () => {
             ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
             : <Zap className="w-4 h-4" />
           }
-          {generating ? 'Generating...' : 'Generate Today'}
+          {generating ? 'Generating...' : 'Generate For Date'}
         </button>
       </div>
 
@@ -199,7 +206,7 @@ const Collection = () => {
           { label: 'Total Entries', value: collections.length, color: isDark ? 'text-yellow-400' : 'text-primary-blue' },
           { label: 'Paid', value: paidCount, color: isDark ? 'text-emerald-400' : 'text-green-600' },
           { label: 'Pending', value: pendingCount, color: isDark ? 'text-accent-red' : 'text-red-600' },
-          { label: "Today's Total", value: `₹${totalCollected.toLocaleString('en-IN')}`, color: isDark ? 'text-yellow-400' : 'text-primary-blue' },
+          { label: "Day's Total", value: `₹${totalCollected.toLocaleString('en-IN')}`, color: isDark ? 'text-yellow-400' : 'text-primary-blue' },
         ].map(({ label, value, color }) => (
           <Card key={label}>
             <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{label}</p>
@@ -246,9 +253,9 @@ const Collection = () => {
         {collections.length === 0 ? (
           <Card className="text-center py-10">
             <Zap className={`w-8 h-8 mx-auto mb-3 ${isDark ? 'text-yellow-400/40' : 'text-blue-300'}`} />
-            <p className={`text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>No collections for today yet</p>
+            <p className={`text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>No collections for {displayDate}</p>
             <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-              Click "Generate Today" to create collection entries for all active loans
+              Click "Generate For Date" to create collection entries for all active loans on this date
             </p>
           </Card>
         ) : filteredCollections.length === 0 ? (
