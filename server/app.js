@@ -19,7 +19,9 @@ app.set('trust proxy', 1); // Necessary for Secure cookies behind Vercel proxy
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL,
   'https://pj-finance-theta.vercel.app',
+  'https://pj-finance.vercel.app',
   'http://localhost:5173',
+  'http://localhost:5174',
   'http://localhost:4000',
 ].filter(Boolean);
 
