@@ -157,6 +157,9 @@ export const AppProvider = ({ children }) => {
     if (!isLoggedIn) return;
     setLoading(true);
     try {
+      // Auto-generate collections for the current selected date
+      await apiGenerateCollections(collectionDate).catch(() => {});
+
       const [c, l, col] = await Promise.all([
         apiFetchCustomers(),
         apiFetchLoans(),
@@ -186,6 +189,9 @@ export const AppProvider = ({ children }) => {
     if (!isLoggedIn) return;
     setLoading(true);
     try {
+      // Auto-generate collections for the selected date
+      await apiGenerateCollections(newDate).catch(() => {});
+
       const col = await apiFetchCollections(newDate);
       setCollections(Array.isArray(col) ? col.map(normalCollection) : []);
     } catch (err) {

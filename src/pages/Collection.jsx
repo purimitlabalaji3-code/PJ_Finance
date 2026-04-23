@@ -132,19 +132,6 @@ const Collection = () => {
   const isDark = theme === 'dark';
   const displayDate = new Date(collectionDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const [searchTerm, setSearchTerm] = useState('');
-  const [generating, setGenerating] = useState(false);
-
-  const handleGenerate = async () => {
-    setGenerating(true);
-    try {
-      const result = await generateCollections(collectionDate);
-      toast.success(result?.message || `Collections generated for ${collectionDate}! ✅`);
-    } catch (err) {
-      toast.error(err.message || 'Failed to generate collections');
-    } finally {
-      setGenerating(false);
-    }
-  };
 
   const enrichedCollections = collections.map(c => {
     const cust = customers.find(cust => cust.id === c.customerId);
@@ -180,24 +167,6 @@ const Collection = () => {
             />
           </div>
         </div>
-        {/* Generate Collections */}
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 flex-shrink-0 ${
-            generating ? 'opacity-60 cursor-not-allowed' : ''
-          } ${
-            isDark
-              ? 'bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20 border border-yellow-400/20'
-              : 'bg-blue-50 text-primary-blue hover:bg-blue-100 border border-blue-200'
-          }`}
-        >
-          {generating
-            ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            : <Zap className="w-4 h-4" />
-          }
-          {generating ? 'Generating...' : 'Generate For Date'}
-        </button>
       </div>
 
       {/* Summary */}
@@ -253,10 +222,7 @@ const Collection = () => {
         {collections.length === 0 ? (
           <Card className="text-center py-10">
             <Zap className={`w-8 h-8 mx-auto mb-3 ${isDark ? 'text-yellow-400/40' : 'text-blue-300'}`} />
-            <p className={`text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>No collections for {displayDate}</p>
-            <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-              Click "Generate For Date" to create collection entries for all active loans on this date
-            </p>
+            <p className={`text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>No active loans found for {displayDate}</p>
           </Card>
         ) : filteredCollections.length === 0 ? (
           <Card className="text-center py-8">
