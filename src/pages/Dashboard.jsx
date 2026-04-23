@@ -75,6 +75,9 @@ const Dashboard = () => {
     return s + (interest > 0 ? interest : 0);
   }, 0);
 
+  // All time total collected across all loans
+  const totalCollectedAllTime = loans.reduce((s, l) => s + (l.totalCollected || 0), 0);
+
   // Today's interest collected = interest portion from each paid collection
   const todayInterestCollected = collections
     .filter(c => c.status === 'Paid')
@@ -133,7 +136,7 @@ const Dashboard = () => {
         />
         <StatCard
           title="Total Collected"
-          value={collections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0)}
+          value={Math.round(totalCollectedAllTime)}
           icon={IndianRupee}
           change="All time"
           changeType="up"
@@ -178,7 +181,7 @@ const Dashboard = () => {
         />
         <StatCard
           title="Remaining Bal."
-          value={Math.round(totalDisbursed + totalInterest - collections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0))}
+          value={Math.round(totalDisbursed + totalInterest - totalCollectedAllTime)}
           icon={Wallet}
           change="In market"
           changeType="up"
