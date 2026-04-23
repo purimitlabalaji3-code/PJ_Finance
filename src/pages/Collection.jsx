@@ -51,9 +51,12 @@ const CollectionRow = ({ entry, isDark }) => {
         }
         <div className="min-w-0">
           <p className={`font-semibold text-sm truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{entry.customerName}</p>
-          <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            {entry.phone ? `${entry.phone} • ` : ''}Due: ₹{entry.dueAmount}
-          </p>
+          <div className={`flex flex-col text-[11px] mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <span>{entry.phone ? `${entry.phone} • ` : ''}Due: ₹{entry.dueAmount}</span>
+            <span className={`font-bold mt-0.5 ${isDark ? 'text-yellow-500/80' : 'text-blue-600/80'}`}>
+              {entry.date ? new Date(entry.date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : ''}
+            </span>
+          </div>
         </div>
       </div>
 
