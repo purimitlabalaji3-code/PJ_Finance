@@ -65,6 +65,22 @@ const AppContent = () => {
       <ToasterWrapper />
       <Suspense fallback={<GlobalLoading />}>
         <Routes>
+          {/* Skip Login Gate for direct mobile/tab access */}
+          <Route element={<Layout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/customers/add" element={<AddCustomer />} />
+            <Route path="/loans" element={<Loans />} />
+            <Route path="/loans/add" element={<AddLoan />} />
+            <Route path="/loans/:id" element={<LoanDetail />} />
+            <Route path="/collection" element={<Collection />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/login" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+
+          {/* Original Login Logic (Commented Out)
           {!isLoggedIn ? (
             <>
               <Route path="/login" element={<Login />} />
@@ -73,19 +89,10 @@ const AppContent = () => {
           ) : (
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/customers/add" element={<AddCustomer />} />
-              <Route path="/loans" element={<Loans />} />
-              <Route path="/loans/add" element={<AddLoan />} />
-              <Route path="/loans/:id" element={<LoanDetail />} />
-              <Route path="/collection" element={<Collection />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/settings" element={<Settings />} />
-              {/* Redirect /login to / if already logged in */}
-              <Route path="/login" element={<Navigate to="/" replace />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              ...
             </Route>
           )}
+          */}
         </Routes>
       </Suspense>
     </div>

@@ -66,7 +66,7 @@ const normalCustomer = (c) => ({
 
 export const AppProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => store.get('pj-theme') || 'dark');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [sessionChecked, setSessionChecked] = useState(false);
 
   const [customers, setCustomers] = useState([]);
