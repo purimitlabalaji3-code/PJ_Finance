@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { GoogleLogin } from '@react-oauth/google';
 import { Eye, EyeOff, Lock, Mail, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Login = () => {
-  const { theme, login } = useApp();
+  const { theme, login, googleLogin } = useApp();
   const isDark = theme === 'dark';
 
   const [form, setForm] = useState({ email: '', password: '' });
@@ -47,6 +48,25 @@ const Login = () => {
     } catch (err) {
       toast.error(err.message || 'Invalid credentials');
       setErrors({ password: 'Login failed' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true);
+    try {
+      await googleLogin(credentialResponse.credential);
+      toast.success('Welcome back, Admin!', {
+        icon: '💎',
+        style: {
+          borderRadius: '1rem',
+          background: isDark ? '#1F2937' : '#FFFFFF',
+          color: isDark ? '#F9FAFB' : '#111827',
+        },
+      });
+    } catch (err) {
+      toast.error(err.message || 'Google Login failed');
     } finally {
       setLoading(false);
     }
@@ -184,6 +204,34 @@ const Login = () => {
                 </>
               )}
             </button>
+
+            {/* Divider */}
+            <div className="relative py-2">
+              <div className="absolute inset-0 flex items-center">
+                <div className={`w-full border-t ${isDark ? 'border-white/10' : 'border-gray-200'}`} />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className={`px-2 ${isDark ? 'bg-[#151515] text-gray-500' : 'bg-white text-gray-400'}`}>
+                  Or Secure Access Via
+                </span>
+              </div>
+            </div>
+
+            {/* Google Login Button Container */}
+            <div className="flex justify-center w-full">
+              <div className="w-full transform transition hover:scale-[1.02] active:scale-[0.98]">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => toast.error('Google Sign-In failed')}
+                  useOneTap
+                  theme={isDark ? 'filled_black' : 'outline'}
+                  shape="pill"
+                  width="100%"
+                  size="large"
+                  text="continue_with"
+                />
+              </div>
+            </div>
           </form>
 
           {/* Footer Info */}

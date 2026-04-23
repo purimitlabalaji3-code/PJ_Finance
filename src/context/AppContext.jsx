@@ -7,7 +7,7 @@ const store = {
   remove: (key) => { try { localStorage.removeItem(key); } catch { /* ignore */ } },
 };
 import {
-  apiLogin, apiFetchMe, apiLogout,
+  apiLogin, apiGoogleLogin, apiFetchMe, apiLogout,
   apiFetchCustomers, apiAddCustomer, apiUpdateCustomer, apiDeleteCustomer,
   apiFetchLoans, apiAddLoan, apiDeleteLoan,
   apiFetchCollections, apiGenerateCollections, apiMarkPaid, apiMarkUnpaid,
@@ -106,6 +106,21 @@ export const AppProvider = ({ children }) => {
       const response = await apiLogin(email, password);
       if (response.success && response.session?.token) {
         store.set('pj_backup_token', response.session.token); // Secure mobile fallback
+      }
+      setIsLoggedIn(true);
+      await loadAll();
+      return response;
+    } catch (err) {
+      setIsLoggedIn(false);
+      throw err;
+    }
+  };
+
+  const googleLogin = async (credential) => {
+    try {
+      const response = await apiGoogleLogin(credential);
+      if (response.success && response.session?.token) {
+        store.set('pj_backup_token', response.session.token);
       }
       setIsLoggedIn(true);
       await loadAll();
@@ -226,7 +241,7 @@ export const AppProvider = ({ children }) => {
 
   return (
     <AppContext.Provider value={{
-      isLoggedIn, login, logout,
+      isLoggedIn, login, googleLogin, logout,
       sessionChecked,
       theme, toggleTheme,
       customers, addCustomer, updateCustomer, deleteCustomer,

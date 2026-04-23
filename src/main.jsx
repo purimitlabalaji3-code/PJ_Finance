@@ -4,6 +4,7 @@ import './index.css'
 import App from '@/App.jsx'
 import React from 'react'
 import toast, { Toaster } from 'react-hot-toast'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 
 // ── Service Worker Registration + Auto-Update System ─────────────────
 if ('serviceWorker' in navigator) {
@@ -105,8 +106,10 @@ class ErrorBoundary extends React.Component {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
-      <Toaster position="top-center" />
-      <App />
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+        <Toaster position="top-center" />
+        <App />
+      </GoogleOAuthProvider>
     </ErrorBoundary>
   </StrictMode>,
 )

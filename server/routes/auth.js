@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import sql from '../db.js';
 import auth from '../middleware/auth.js';
 
@@ -10,6 +11,7 @@ import auth from '../middleware/auth.js';
  */
 const router = express.Router();
 const SECRET = process.env.JWT_SECRET || 'pj_finance_secret';
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -95,6 +97,84 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error(' [AUTH_FATAL]:', error);
     return res.status(500).json({ success: false, error: 'Authorization engine failure' });
+  }
+});
+
+/**
+ * 🌐 POST /api/auth/google
+ * Verified Google Token Login
+ */
+router.post('/google', async (req, res) => {
+  const { credential } = req.body;
+
+  if (!credential) {
+    return res.status(400).json({ success: false, error: 'Google credential missing' });
+  }
+
+  try {
+    // 1. Verify Google Token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    
+    const payload = ticket.getPayload();
+    const googleEmail = payload['email'].toLowerCase().trim();
+    const adminEmailEnv = process.env.ADMIN_EMAIL?.toLowerCase().trim();
+
+    // 2. Authorization Check (Only Admin Email)
+    if (googleEmail !== adminEmailEnv) {
+      console.warn(` [AUTH_DENIED]: Non-admin Google login attempt: ${googleEmail}`);
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Unauthorized. This account does not have admin access.' 
+      });
+    }
+
+    // 3. Identity Retrieval or Creation (Ensure admin exists in DB)
+    let [adminUser] = await sql`
+      SELECT id, gmail, username 
+      FROM admin 
+      WHERE LOWER(gmail) = ${googleEmail}
+      LIMIT 1
+    `;
+
+    if (!adminUser) {
+      // Fallback: If no gmail match, try to find the first admin to link or just use it
+      [adminUser] = await sql`SELECT id, gmail, username FROM admin ORDER BY id ASC LIMIT 1`;
+      if (adminUser && !adminUser.gmail) {
+        await sql`UPDATE admin SET gmail = ${googleEmail} WHERE id = ${adminUser.id}`;
+      }
+    }
+
+    if (!adminUser) {
+      return res.status(404).json({ success: false, error: 'Admin configuration missing in database' });
+    }
+
+    // 4. Session Construction
+    const sessionPayload = {
+      id: adminUser.id,
+      email: googleEmail,
+      iat: Math.floor(Date.now() / 1000)
+    };
+
+    const token = createToken(sessionPayload);
+
+    // 5. Inject Session
+    res.cookie('pj_token', token, COOKIE_OPTIONS);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Google authentication successful',
+      session: {
+        email: googleEmail,
+        token: token
+      }
+    });
+
+  } catch (error) {
+    console.error(' [GOOGLE_AUTH_ERROR]:', error);
+    return res.status(401).json({ success: false, error: 'Invalid Google session' });
   }
 });
 

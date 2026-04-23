@@ -110,6 +110,7 @@ const request = async (method, path, body, options = {}) => {
 
 // ── Auth ──────────────────────────────────────────────────────────────
 export const apiLogin          = (email, password) => request('POST', '/api/auth/login', { email, password });
+export const apiGoogleLogin     = (credential) => request('POST', '/api/auth/google', { credential });
 // apiFetchMe: skipReload = true so a 401 doesn't trigger a reload loop.
 // timeout = 20s to handle Vercel cold starts on slow Android devices.
 export const apiFetchMe        = () => request('GET', '/api/auth/me', null, { skipReload: true, timeout: SESSION_TIMEOUT });
