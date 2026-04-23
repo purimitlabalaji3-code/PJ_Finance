@@ -25,7 +25,8 @@ const Customers = () => {
 
   const filtered = customers.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.phone.includes(search)
+    c.phone.includes(search) ||
+    c.customerCode?.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDelete = async () => {
@@ -41,10 +42,10 @@ const Customers = () => {
 
   const columns = [
     {
-      header: '#', key: 'id',
-      render: (row, _col, idx) => (
+      header: 'Code', key: 'customerCode',
+      render: (row) => (
         <span className={`text-xs font-mono font-bold ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>
-          PJ-{String(idx + 1).padStart(3, '0')}
+          {row.customerCode}
         </span>
       )
     },
@@ -119,7 +120,7 @@ const Customers = () => {
             className={`input-field pl-9 ${isDark
               ? 'bg-dark-muted border-dark-border text-white placeholder-gray-500 focus:border-yellow-400'
               : 'bg-white border-light-border text-gray-900 placeholder-gray-400 focus:border-primary-blue'}`}
-            placeholder="Search by name or phone..."
+            placeholder="Search by name, phone or PJ code..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />

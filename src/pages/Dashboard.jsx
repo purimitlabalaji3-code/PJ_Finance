@@ -118,71 +118,72 @@ const Dashboard = () => {
           title="Total Customers"
           value={stats.totalCustomers}
           icon={Users}
-          change="+12%"
+          change="Registered"
           changeType="up"
           color={isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}
         />
         <StatCard
-          title="Active Loans"
-          value={stats.activeLoans}
+          title="Total Loan Given"
+          value={totalDisbursed}
           icon={CreditCard}
-          change="+5%"
+          change="Principal"
           changeType="up"
+          prefix="₹"
           color={isDark ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-50 text-purple-600'}
         />
         <StatCard
-          title="Total Disbursed"
-          value={totalDisbursed}
-          icon={Wallet}
-          change="All time"
-          changeType="up"
-          prefix="₹"
-          color={isDark ? 'bg-orange-500/10 text-orange-400' : 'bg-orange-50 text-orange-600'}
-        />
-        <StatCard
-          title="Target Daily"
-          value={expectedDaily}
-          icon={Target}
-          change="Expected"
-          changeType="up"
-          prefix="₹"
-          color={isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}
-        />
-        <StatCard
-          title="Today's Collection"
-          value={stats.todayCollection}
+          title="Total Collected"
+          value={collections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0)}
           icon={IndianRupee}
-          change="Today"
+          change="All time"
           changeType="up"
           prefix="₹"
           color={isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}
         />
         <StatCard
-          title="Pending Amount"
-          value={stats.pendingAmount}
-          icon={AlertCircle}
-          change="Due today"
-          changeType="down"
-          prefix="₹"
-          color={isDark ? 'bg-red-500/10 text-accent-red' : 'bg-red-50 text-red-500'}
-        />
-        <StatCard
           title="Total Interest"
           value={Math.round(totalInterest)}
           icon={Percent}
-          change="All loans"
+          change="Earned"
           changeType="up"
           prefix="₹"
           color={isDark ? 'bg-pink-500/10 text-pink-400' : 'bg-pink-50 text-pink-600'}
         />
         <StatCard
-          title="Interest Today"
-          value={Math.round(todayInterestCollected)}
+          title="Today Collected"
+          value={stats.todayCollection}
           icon={TrendingUp}
-          change="Collected"
+          change="Received"
           changeType="up"
           prefix="₹"
           color={isDark ? 'bg-cyan-500/10 text-cyan-400' : 'bg-cyan-50 text-cyan-600'}
+        />
+        <StatCard
+          title="Today Target"
+          value={expectedDaily}
+          icon={Target}
+          change="To collect"
+          changeType="up"
+          prefix="₹"
+          color={isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}
+        />
+        <StatCard
+          title="Today Pending"
+          value={stats.pendingAmount}
+          icon={AlertCircle}
+          change="Due now"
+          changeType="down"
+          prefix="₹"
+          color={isDark ? 'bg-red-500/10 text-accent-red' : 'bg-red-50 text-red-500'}
+        />
+        <StatCard
+          title="Remaining Bal."
+          value={Math.round(totalDisbursed + totalInterest - collections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0))}
+          icon={Wallet}
+          change="In market"
+          changeType="up"
+          prefix="₹"
+          color={isDark ? 'bg-orange-500/10 text-orange-400' : 'bg-orange-50 text-orange-600'}
         />
       </div>
 

@@ -9,9 +9,12 @@ router.get('/', auth, async (req, res) => {
   try {
     const date = req.query.date || new Date().toISOString().split('T')[0];
     const rows = await sql`
-      SELECT col.*, c.name AS customer_name, c.phone
+      SELECT col.*, 
+             c.name AS customer_name, c.phone, c.customer_code,
+             l.total_amount, l.paid_days, l.daily_amount
       FROM collections col
       JOIN customers c ON c.id = col.customer_id
+      JOIN loans l ON l.id = col.loan_id
       WHERE col.date = ${date}
       ORDER BY col.created_at DESC
     `;
@@ -25,7 +28,7 @@ router.get('/', auth, async (req, res) => {
 router.get('/all', auth, async (req, res) => {
   try {
     const rows = await sql`
-      SELECT col.*, c.name AS customer_name, c.phone
+      SELECT col.*, c.name AS customer_name, c.phone, c.customer_code
       FROM collections col
       JOIN customers c ON c.id = col.customer_id
       ORDER BY col.date DESC, col.created_at DESC

@@ -73,7 +73,7 @@ const LoanDetail = () => {
             </h2>
             <div className="flex items-center gap-2 mt-0.5">
               <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${isDark ? 'bg-yellow-400/20 text-yellow-400' : 'bg-blue-100 text-blue-700'}`}>
-                PJ-{String(loan.id).slice(-4)}
+                {loan.customerCode}
               </span>
               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Started {loan.startDate}</span>
             </div>

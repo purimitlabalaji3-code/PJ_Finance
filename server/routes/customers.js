@@ -32,9 +32,15 @@ router.post('/', auth, async (req, res) => {
     const { name, phone, age, gender, aadhaar, address, image } = req.body;
     if (!name || !phone) return res.status(400).json({ error: 'Name and phone required' });
 
+    // 1. Generate Next Customer Code (PJ-XXX)
+    // We get the max ID to ensure we don't have collisions even if some are deleted
+    const [lastCustomer] = await sql`SELECT id FROM customers ORDER BY id DESC LIMIT 1`;
+    const nextId = (lastCustomer?.id || 0) + 1;
+    const customerCode = `PJ-${String(nextId).padStart(3, '0')}`;
+
     const [row] = await sql`
-      INSERT INTO customers (name, phone, age, gender, aadhaar, address, image)
-      VALUES (${name}, ${phone}, ${age || null}, ${gender || null}, ${aadhaar || null}, ${address || null}, ${image || null})
+      INSERT INTO customers (customer_code, name, phone, age, gender, aadhaar, address, image)
+      VALUES (${customerCode}, ${name}, ${phone}, ${age || null}, ${gender || null}, ${aadhaar || null}, ${address || null}, ${image || null})
       RETURNING *
     `;
     res.status(201).json(row);

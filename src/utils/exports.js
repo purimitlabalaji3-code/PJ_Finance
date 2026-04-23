@@ -87,9 +87,9 @@ export const downloadCSV = (filename, headers, rows) => {
 // ══════════════════════════════════════════════════════════════════════════
 export const exportCustomersCSV = (customers) => {
   downloadCSV(`PJ_Customers_${today()}.csv`,
-    ['#', 'Name', 'Phone', 'Age', 'Gender', 'Aadhaar', 'Address', 'Status', 'Join Date'],
-    customers.map((c, i) => [
-      `PJ-${String(i + 1).padStart(3, '0')}`,
+    ['Code', 'Name', 'Phone', 'Age', 'Gender', 'Aadhaar', 'Address', 'Status', 'Join Date'],
+    customers.map((c) => [
+      c.customerCode || '—',
       c.name, c.phone, c.age || '', c.gender || '',
       c.aadhaar || '', c.address || '', c.status, c.joinDate || ''
     ])
@@ -102,9 +102,9 @@ export const exportCustomersPDF = (customers) => {
 
   autoTable(doc, {
     startY: 32,
-    head: [['#', 'Name', 'Phone', 'Age', 'Gender', 'Aadhaar', 'Address', 'Status', 'Join Date']],
-    body: customers.map((c, i) => [
-      `PJ-${String(i + 1).padStart(3, '0')}`,
+    head: [['Code', 'Name', 'Phone', 'Age', 'Gender', 'Aadhaar', 'Address', 'Status', 'Join Date']],
+    body: customers.map((c) => [
+      c.customerCode || '—',
       c.name, c.phone, c.age || '—', c.gender || '—',
       c.aadhaar || '—', c.address || '—', c.status, c.joinDate || '—'
     ]),
@@ -112,7 +112,7 @@ export const exportCustomersPDF = (customers) => {
     headStyles:  { fillColor: DARK, textColor: GOLD, fontStyle: 'bold', fontSize: 8 },
     alternateRowStyles: { fillColor: [248, 248, 248] },
     columnStyles: {
-      0: { cellWidth: 18 },
+      0: { cellWidth: 18, fontStyle: 'bold' },
       7: { fontStyle: 'bold' },
     },
     didDrawPage: () => addFooter(doc),
@@ -225,10 +225,18 @@ export const exportCollectionPDF = (collections) => {
 
   autoTable(doc, {
     startY: 54,
-    head: [['Customer', 'Phone', 'Due Amount', 'Paid Amount', 'Status', 'Date']],
-    body: collections.map(c => [
-      c.customerName, c.phone || '—', fmt(c.dueAmount), c.status === 'Paid' ? fmt(c.paidAmount) : '—', c.status, c.date || today()
-    ]),
+    head: [['Code', 'Customer', 'Due Amt', 'Paid Amt', 'Remaining', 'Status']],
+    body: collections.map(c => {
+      const remaining = Number(c.totalAmount || 0) - (Number(c.paidDays || 0) * Number(c.dailyAmount || 0));
+      return [
+        c.customerCode || '—',
+        c.customerName,
+        fmt(c.dueAmount),
+        c.status === 'Paid' ? fmt(c.paidAmount) : '—',
+        fmt(Math.max(0, remaining)),
+        c.status
+      ];
+    }),
     styles:     { fontSize: 8, cellPadding: 3 },
     headStyles: { fillColor: DARK, textColor: GOLD, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [248, 248, 248] },
