@@ -40,17 +40,27 @@ router.get('/:id', auth, async (req, res) => {
 // POST /api/loans
 router.post('/', auth, async (req, res) => {
   try {
-    const { customerId, loanAmount, interest, startDate } = req.body;
+    const { customerId, loanAmount, interest, startDate, loanType } = req.body;
     if (!customerId || !loanAmount) return res.status(400).json({ error: 'customerId and loanAmount required' });
 
     const amt = parseFloat(loanAmount);
-    const rate = parseFloat(interest || 10);
-    const totalAmount = amt + (amt * rate / 100);
-    const dailyAmount = Math.ceil(totalAmount / 100);
+    const type = loanType || 'Daily';
+    
+    let totalAmount, dailyAmount;
+    if (type === 'Daily') {
+      const rate = parseFloat(interest || 10);
+      totalAmount = amt + (amt * rate / 100);
+      dailyAmount = Math.ceil(totalAmount / 100);
+    } else {
+      // Term loan (15-Day / Monthly)
+      // totalAmount is Principal. dailyAmount stores the fixed interest cycle amount.
+      totalAmount = amt;
+      dailyAmount = parseFloat(interest || 0);
+    }
 
     const [row] = await sql`
-      INSERT INTO loans (customer_id, loan_amount, interest, total_amount, daily_amount, start_date)
-      VALUES (${customerId}, ${amt}, ${rate}, ${totalAmount}, ${dailyAmount}, ${startDate || new Date().toISOString().split('T')[0]})
+      INSERT INTO loans (customer_id, loan_amount, interest, total_amount, daily_amount, start_date, loan_type)
+      VALUES (${customerId}, ${amt}, ${parseFloat(interest || 0)}, ${totalAmount}, ${dailyAmount}, ${startDate || new Date().toISOString().split('T')[0]}, ${type})
       RETURNING *
     `;
 

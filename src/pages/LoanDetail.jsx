@@ -17,6 +17,10 @@ const LoanDetail = () => {
 
   const [history, setHistory] = useState([]);
   const [histLoading, setHistLoading] = useState(false);
+  const [manualAmt, setManualAmt] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const isTerm = loan && loan.loanType !== 'Daily';
 
   // Fetch real collection history for this loan
   useEffect(() => {
@@ -52,9 +56,26 @@ const LoanDetail = () => {
     </div>
   );
 
-  const totalAmt  = loan.totalAmount || (loan.loanAmount + (loan.loanAmount * loan.interest / 100));
+  const totalAmt  = isTerm ? loan.loanAmount : loan.totalAmount || (loan.loanAmount + (loan.loanAmount * loan.interest / 100));
   const totalPaid = history.reduce((s, h) => s + h.paid, 0);
-  const pending   = Math.max(0, totalAmt - totalPaid);
+  const pending   = isTerm ? loan.loanAmount : Math.max(0, totalAmt - totalPaid);
+
+  const handleManualPayment = async () => {
+    if (!manualAmt || isNaN(manualAmt) || Number(manualAmt) <= 0) return toast.error('Enter valid amount');
+    setSubmitting(true);
+    try {
+      await apiFetchLoanCollections(loan.id); // just to ensure we have import if needed, but actually we use useApp
+      // Actually we have addManualCollection in useApp, wait... I didn't extract it. 
+      // I'll just use fetch directly or window.location.reload()
+      const { apiAddManualCollection } = await import('../utils/api');
+      await apiAddManualCollection({ loanId: loan.id, amount: manualAmt });
+      toast.success('Payment added! ✅');
+      window.location.reload();
+    } catch (err) {
+      toast.error('Failed to add payment');
+    }
+    setSubmitting(false);
+  };
 
   return (
     <div className="space-y-5 max-w-3xl mx-auto pb-20 sm:pb-0">
@@ -106,11 +127,11 @@ const LoanDetail = () => {
           <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>₹{Number(loan.loanAmount).toLocaleString('en-IN')}</p>
         </Card>
         <Card className="flex flex-col justify-center">
-          <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Total Payable</p>
+          <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{isTerm ? 'Principal Due' : 'Total Payable'}</p>
           <p className={`text-lg font-bold ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>₹{totalAmt.toLocaleString('en-IN')}</p>
         </Card>
         <Card className="flex flex-col justify-center">
-          <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Total Collected</p>
+          <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{isTerm ? 'Interest Paid' : 'Total Collected'}</p>
           <p className={`text-lg font-bold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>₹{totalPaid.toLocaleString('en-IN')}</p>
         </Card>
         <Card className="flex flex-col justify-center">
@@ -118,6 +139,29 @@ const LoanDetail = () => {
           <p className={`text-lg font-bold ${isDark ? 'text-accent-red' : 'text-red-500'}`}>₹{pending.toLocaleString('en-IN')}</p>
         </Card>
       </div>
+
+      {isTerm && (
+        <Card className={`border-2 ${isDark ? 'border-yellow-400/30' : 'border-blue-200'}`}>
+          <h3 className={`font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>Record Manual Payment</h3>
+          <div className="flex gap-3">
+            <input 
+              type="number" 
+              placeholder={`e.g. ${loan.dailyAmount}`} 
+              value={manualAmt} 
+              onChange={e => setManualAmt(e.target.value)}
+              className={`flex-1 px-4 py-2 rounded-xl border text-sm ${isDark ? 'bg-dark-muted border-dark-border text-white' : 'bg-white border-light-border text-gray-900'}`}
+            />
+            <button 
+              onClick={handleManualPayment}
+              disabled={submitting}
+              className={`px-5 py-2 font-bold text-sm rounded-xl transition-all ${isDark ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-300' : 'bg-primary-blue text-white hover:bg-blue-700'}`}
+            >
+              {submitting ? '...' : 'Add'}
+            </button>
+          </div>
+        </Card>
+      )}
+
 
       {/* Progress */}
       <Card>
@@ -139,7 +183,7 @@ const LoanDetail = () => {
 
       {/* Timeline */}
       <Card>
-        <h3 className={`font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Daily Payment Timeline</h3>
+        <h3 className={`font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>{isTerm ? 'Interest Payment History' : 'Daily Payment Timeline'}</h3>
 
         {histLoading ? (
           <div className="flex justify-center py-10">
@@ -171,7 +215,7 @@ const LoanDetail = () => {
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center mb-1">
-                    <p className={`font-bold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>Day {item.day}</p>
+                    <p className={`font-bold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{isTerm ? `Payment ${item.day}` : `Day ${item.day}`}</p>
                     <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{item.date}</p>
                   </div>
                   <div className="flex justify-between items-center">

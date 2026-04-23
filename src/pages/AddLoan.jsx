@@ -13,7 +13,7 @@ const AddLoan = () => {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    customerId: '', loanAmount: '', interest: '10', startDate: new Date().toISOString().split('T')[0]
+    customerId: '', loanType: 'Daily', loanAmount: '', interest: '10', startDate: new Date().toISOString().split('T')[0]
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -25,16 +25,18 @@ const AddLoan = () => {
 
   const loanAmt = parseFloat(form.loanAmount) || 0;
   const interest = parseFloat(form.interest) || 0;
-  const totalAmount = loanAmt + (loanAmt * interest / 100);
-  const dailyAmount = loanAmt ? Math.ceil(totalAmount / 100) : 0;
+  const isDaily = form.loanType === 'Daily';
+  
+  const totalAmount = isDaily ? loanAmt + (loanAmt * interest / 100) : loanAmt;
+  const dailyAmount = isDaily ? (loanAmt ? Math.ceil(totalAmount / 100) : 0) : interest;
 
   const validate = () => {
     const e = {};
     if (!form.customerId) e.customerId = 'Please select a customer';
     if (!form.loanAmount) e.loanAmount = 'Loan amount is required';
     else if (loanAmt < 1000) e.loanAmount = 'Minimum loan amount is ₹1,000';
-    if (!form.interest) e.interest = 'Interest rate is required';
-    else if (interest < 0 || interest > 100) e.interest = 'Interest must be 0-100%';
+    if (!form.interest) e.interest = isDaily ? 'Interest rate is required' : 'Interest amount is required';
+    else if (isDaily && (interest < 0 || interest > 100)) e.interest = 'Interest must be 0-100%';
     if (!form.startDate) e.startDate = 'Start date is required';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -83,12 +85,15 @@ const AddLoan = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormInput label="Select Customer" id="customerId" type="select"
               required value={form.customerId} onChange={set('customerId')}
-              error={errors.customerId} options={customerOptions} className="sm:col-span-2" />
+              error={errors.customerId} options={customerOptions} />
+            <FormInput label="Loan Type" id="loanType" type="select"
+              required value={form.loanType} onChange={set('loanType')}
+              options={['Daily', '15-Day', 'Monthly']} />
             <FormInput label="Loan Amount (₹)" id="loanAmount" type="number"
-              required placeholder="e.g. 50000"
+              required placeholder="e.g. 100000"
               value={form.loanAmount} onChange={set('loanAmount')} error={errors.loanAmount} />
-            <FormInput label="Interest (%)" id="interest" type="number"
-              required placeholder="e.g. 10"
+            <FormInput label={isDaily ? "Interest (%)" : "Interest per Cycle (₹)"} id="interest" type="number"
+              required placeholder={isDaily ? "e.g. 10" : "e.g. 3000"}
               value={form.interest} onChange={set('interest')} error={errors.interest} />
             <FormInput label="Start Date" id="startDate" type="date"
               required value={form.startDate} onChange={set('startDate')}
@@ -101,7 +106,9 @@ const AddLoan = () => {
           <Card className={`border-2 ${isDark ? 'border-yellow-400/30 bg-yellow-400/5' : 'border-blue-200 bg-blue-50/50'}`}>
             <div className="flex items-center gap-2 mb-4">
               <Calculator className={`w-5 h-5 ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`} />
-              <h3 className={`font-bold text-sm ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>Auto Calculation (100-Day Plan)</h3>
+              <h3 className={`font-bold text-sm ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>
+                {isDaily ? 'Auto Calculation (100-Day Plan)' : `Term Plan (${form.loanType})`}
+              </h3>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
               {/* Principal */}
@@ -111,28 +118,32 @@ const AddLoan = () => {
               </div>
               {/* Interest Amount */}
               <div className={`p-3 rounded-xl border-2 ${isDark ? 'bg-pink-500/10 border-pink-500/30' : 'bg-pink-50 border-pink-200'}`}>
-                <p className={`text-xs mb-1 ${isDark ? 'text-pink-300' : 'text-pink-600'}`}>Interest ({interest}%)</p>
+                <p className={`text-xs mb-1 ${isDark ? 'text-pink-300' : 'text-pink-600'}`}>{isDaily ? `Interest (${interest}%)` : `Interest / Cycle`}</p>
                 <p className={`text-base font-bold ${isDark ? 'text-pink-400' : 'text-pink-600'}`}>
-                  ₹{(totalAmount - loanAmt).toLocaleString('en-IN')}
+                  ₹{isDaily ? (totalAmount - loanAmt).toLocaleString('en-IN') : dailyAmount.toLocaleString('en-IN')}
                 </p>
               </div>
               {/* Total Payable */}
               <div className={`p-3 rounded-xl ${isDark ? 'bg-dark-muted' : 'bg-white'}`}>
-                <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Total Payable</p>
+                <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{isDaily ? 'Total Payable' : 'Principal Due'}</p>
                 <p className={`text-base font-bold ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>₹{totalAmount.toLocaleString('en-IN')}</p>
               </div>
-              {/* Daily EMI */}
+              {/* Daily EMI / Cycle EMI */}
               <div className={`p-3 rounded-xl ${isDark ? 'bg-dark-muted' : 'bg-white'}`}>
-                <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Daily EMI</p>
+                <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{isDaily ? 'Daily EMI' : 'Payment'}</p>
                 <p className={`text-base font-bold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>₹{dailyAmount}</p>
               </div>
             </div>
             <div className={`mt-4 p-4 rounded-xl text-xs space-y-2 ${isDark ? 'bg-dark-muted' : 'bg-white shadow-sm border border-light-border'}`}>
               <p className={`flex items-center gap-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 <span>📋</span>
-                <span>The customer will pay <strong className={isDark ? 'text-white' : 'text-gray-900'}>₹{dailyAmount}/day</strong> for <strong className={isDark ? 'text-white' : 'text-gray-900'}>100 days</strong> = Total <strong className={isDark ? 'text-white' : 'text-gray-900'}>₹{(dailyAmount * 100).toLocaleString('en-IN')}</strong></span>
+                {isDaily ? (
+                  <span>The customer will pay <strong className={isDark ? 'text-white' : 'text-gray-900'}>₹{dailyAmount}/day</strong> for <strong className={isDark ? 'text-white' : 'text-gray-900'}>100 days</strong> = Total <strong className={isDark ? 'text-white' : 'text-gray-900'}>₹{(dailyAmount * 100).toLocaleString('en-IN')}</strong></span>
+                ) : (
+                  <span>The customer will pay <strong className={isDark ? 'text-white' : 'text-gray-900'}>₹{dailyAmount}</strong> every <strong className={isDark ? 'text-white' : 'text-gray-900'}>{form.loanType === '15-Day' ? '15 days' : '1 month'}</strong> until principal is returned.</span>
+                )}
               </p>
-              {form.startDate && (
+              {isDaily && form.startDate && (
                 <p className={`flex items-center gap-2 pt-2 border-t ${isDark ? 'text-gray-400 border-dark-border' : 'text-gray-500 border-gray-100'}`}>
                   <span>📅</span>
                   <span>Estimated End Date (excluding Sundays): <strong className={isDark ? 'text-emerald-400' : 'text-green-600'}>

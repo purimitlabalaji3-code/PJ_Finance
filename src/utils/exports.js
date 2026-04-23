@@ -354,26 +354,28 @@ export const exportSingleLoanPDF = (loan, collections) => {
   const doc = new jsPDF();
   const W   = doc.internal.pageSize.getWidth();
   
-  const principal = Number(loan.loanAmount);
-  const totalPayable = Number(loan.totalAmount) || principal * (1 + Number(loan.interest) / 100);
-  const interestAmount = totalPayable - principal;
+  const principal = Number(loan.loanAmount || 0);
+  const isTerm = loan.loanType !== 'Daily' && loan.loanType;
+  const totalPayable = isTerm ? principal : Number(loan.totalAmount || (principal + (principal * Number(loan.interest) / 100)));
   
   const loanCollections = collections.filter(c => c.loanId === loan.id);
   const totalCollected = loanCollections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0);
-  const remaining = totalPayable - totalCollected;
+  const remaining = Math.max(0, totalPayable - totalCollected);
 
   addHeader(doc, `Loan Statement — ${loan.customerName}`, `Loan ID: ${loan.id} | Started: ${loan.startDate}`);
 
   // Summary boxes
   const boxes = [
     { label: 'Principal',       value: fmt(principal),      color: DARK },
-    { label: 'Interest',        value: `${loan.interest}%`, color: DARK },
-    { label: 'Total Payable',   value: fmt(Math.round(totalPayable)), color: [30, 30, 80] },
-    { label: 'Total Collected', value: fmt(Math.round(totalCollected)), color: GREEN },
-    { label: 'Remaining',       value: fmt(Math.round(remaining)), color: RED },
+    ...(!isTerm ? [
+      { label: 'Interest',        value: `${loan.interest}%`, color: DARK },
+      { label: 'Total Payable',   value: fmt(Math.round(totalPayable)), color: [30, 30, 80] }
+    ] : []),
+    { label: isTerm ? 'Interest Paid' : 'Total Collected', value: fmt(Math.round(totalCollected)), color: GREEN },
+    { label: isTerm ? 'Principal Due' : 'Remaining',       value: fmt(Math.round(remaining)), color: RED },
   ];
   
-  const bw = (W - 28) / 5;
+  const bw = (W - 28) / boxes.length;
   boxes.forEach((b, i) => {
     const x = 14 + i * (bw + 2);
     doc.setFillColor(...b.color);

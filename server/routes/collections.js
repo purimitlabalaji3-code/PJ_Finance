@@ -57,7 +57,7 @@ router.get('/loan/:loanId', auth, async (req, res) => {
 router.post('/generate', auth, async (req, res) => {
   try {
     const date = req.query.date || new Date().toISOString().split('T')[0];
-    const activeLoans = await sql`SELECT * FROM loans WHERE status = 'Active'`;
+    const activeLoans = await sql`SELECT * FROM loans WHERE status = 'Active' AND (loan_type = 'Daily' OR loan_type IS NULL)`;
 
     let generated = 0;
     for (const loan of activeLoans) {
@@ -73,6 +73,30 @@ router.post('/generate', auth, async (req, res) => {
       }
     }
     res.json({ message: `Generated ${generated} collection entries`, date });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/collections/manual — for 15-Day / Monthly interest payments
+router.post('/manual', auth, async (req, res) => {
+  try {
+    const { loanId, amount, date } = req.body;
+    if (!loanId || !amount) return res.status(400).json({ error: 'loanId and amount required' });
+
+    // Insert a paid collection directly
+    const [row] = await sql`
+      INSERT INTO collections (loan_id, customer_id, due_amount, paid_amount, date, status)
+      SELECT id, customer_id, ${parseFloat(amount)}, ${parseFloat(amount)}, ${date || new Date().toISOString().split('T')[0]}, 'Paid'
+      FROM loans WHERE id = ${loanId}
+      RETURNING *
+    `;
+
+    // Increment paid_days to track how many interest cycles are paid
+    await sql`UPDATE loans SET paid_days = paid_days + 1 WHERE id = ${loanId}`;
+
+    res.status(201).json(row);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

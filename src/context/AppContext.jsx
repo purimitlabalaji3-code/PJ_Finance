@@ -10,7 +10,7 @@ import {
   apiLogin, apiGoogleLogin, apiFetchMe, apiLogout,
   apiFetchCustomers, apiAddCustomer, apiUpdateCustomer, apiDeleteCustomer,
   apiFetchLoans, apiAddLoan, apiDeleteLoan,
-  apiFetchCollections, apiGenerateCollections, apiMarkPaid, apiMarkUnpaid,
+  apiFetchCollections, apiGenerateCollections, apiAddManualCollection, apiMarkPaid, apiMarkUnpaid,
 } from '@/utils/api';
 
 import toast from 'react-hot-toast';
@@ -37,6 +37,7 @@ const normalLoan = (l) => ({
   paidDays:     l.paid_days,
   totalDays:    l.total_days,
   totalCollected: Number(l.total_collected || 0),
+  loanType:     l.loan_type || 'Daily',
 });
 
 const normalCollection = (c) => ({
@@ -227,6 +228,11 @@ export const AppProvider = ({ children }) => {
     ));
   };
 
+  const addManualCollection = async (data) => {
+    await apiAddManualCollection(data);
+    await loadAll();
+  };
+
   const markCollectionPending = async (id) => {
     const row = await apiMarkUnpaid(id);
     const nc = normalCollection(row);
@@ -252,7 +258,7 @@ export const AppProvider = ({ children }) => {
       customers, addCustomer, updateCustomer, deleteCustomer,
       loans, addLoan, deleteLoan,
       collections, setCollections, markCollectionPaid, markCollectionPending,
-      generateCollections,
+      generateCollections, addManualCollection,
       loading, loadAll,
       stats,
     }}>
