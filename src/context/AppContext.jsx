@@ -78,7 +78,8 @@ export const AppProvider = ({ children }) => {
   const [customers, setCustomers] = useState([]);
   const [loans, setLoans] = useState([]);
   const [collections, setCollections] = useState([]);
-  const [collectionDate, setCollectionDate] = useState(() => new Date().toISOString().split('T')[0]);
+  // Use local date (not UTC) so IST users see the correct day
+  const [collectionDate, setCollectionDate] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [loading, setLoading] = useState(false);
 
   // ── Theme ──────────────────────────────────────────────────────────
@@ -209,8 +210,19 @@ export const AppProvider = ({ children }) => {
     const row = await apiAddLoan(loan);
     const nl = normalLoan(row);
     setLoans(prev => [nl, ...prev]);
+
+    // Auto-generate today's collection entry for the new loan, then refresh collections
+    try {
+      await apiGenerateCollections(collectionDate).catch(() => {});
+      const col = await apiFetchCollections(collectionDate);
+      setCollections(Array.isArray(col) ? col.map(normalCollection) : []);
+    } catch {
+      // Non-blocking — collections will still load on next refresh
+    }
+
     return nl;
   };
+
 
   const deleteLoan = async (id) => {
     await apiDeleteLoan(id);

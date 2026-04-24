@@ -4,10 +4,15 @@ import auth from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Returns today's date in YYYY-MM-DD using Indian Standard Time (IST / Asia/Kolkata)
+const localToday = () =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+
+
 // GET /api/collections?date=YYYY-MM-DD
 router.get('/', auth, async (req, res) => {
   try {
-    const date = req.query.date || new Date().toISOString().split('T')[0];
+    const date = req.query.date || localToday();
     const rows = await sql`
       SELECT col.*, 
              c.name AS customer_name, c.phone, c.customer_code,
@@ -56,23 +61,24 @@ router.get('/loan/:loanId', auth, async (req, res) => {
 // POST /api/collections — generate daily collections for all active loans
 router.post('/generate', auth, async (req, res) => {
   try {
-    const date = req.query.date || new Date().toISOString().split('T')[0];
-    const activeLoans = await sql`SELECT * FROM loans WHERE status = 'Active' AND (loan_type = 'Daily' OR loan_type IS NULL) AND start_date <= ${date}`;
-
-    let generated = 0;
-    for (const loan of activeLoans) {
-      const [existing] = await sql`
-        SELECT id FROM collections WHERE loan_id = ${loan.id} AND date = ${date}
-      `;
-      if (!existing) {
-        await sql`
-          INSERT INTO collections (loan_id, customer_id, due_amount, date)
-          VALUES (${loan.id}, ${loan.customer_id}, ${loan.daily_amount}, ${date})
-        `;
-        generated++;
-      }
-    }
-    res.json({ message: `Generated ${generated} collection entries`, date });
+    const date = req.query.date || localToday();
+    
+    // Bulk INSERT using a single query (much faster than a loop)
+    const result = await sql`
+      INSERT INTO collections (loan_id, customer_id, due_amount, date)
+      SELECT id, customer_id, daily_amount, ${date}
+      FROM loans l
+      WHERE status = 'Active' 
+        AND (loan_type = 'Daily' OR loan_type IS NULL) 
+        AND start_date <= ${date}
+        AND NOT EXISTS (
+          SELECT 1 FROM collections c 
+          WHERE c.loan_id = l.id AND c.date = ${date}
+        )
+      RETURNING id
+    `;
+    
+    res.json({ message: `Generated ${result.length} collection entries`, date });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -88,7 +94,7 @@ router.post('/manual', auth, async (req, res) => {
     // Insert a paid collection directly
     const [row] = await sql`
       INSERT INTO collections (loan_id, customer_id, due_amount, paid_amount, date, status)
-      SELECT id, customer_id, ${parseFloat(amount)}, ${parseFloat(amount)}, ${date || new Date().toISOString().split('T')[0]}, 'Paid'
+      SELECT id, customer_id, ${parseFloat(amount)}, ${parseFloat(amount)}, ${date || localToday()}, 'Paid'
       FROM loans WHERE id = ${loanId}
       RETURNING *
     `;

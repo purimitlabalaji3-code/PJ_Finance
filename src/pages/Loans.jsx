@@ -54,11 +54,11 @@ const Loans = () => {
             <p className={`font-bold text-sm ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>
               ₹{principal.toLocaleString('en-IN')}
             </p>
-            <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              Total: <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>₹{totalAmt.toLocaleString('en-IN')}</span>
-            </p>
             <p className={`text-[11px] ${isDark ? 'text-pink-400' : 'text-pink-600'}`}>
               Interest: ₹{interestAmt.toLocaleString('en-IN')}
+            </p>
+            <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              Total: <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>₹{totalAmt.toLocaleString('en-IN')}</span>
             </p>
           </div>
         );
@@ -91,7 +91,7 @@ const Loans = () => {
               <div className={`flex-1 h-1.5 rounded-full ${isDark ? 'bg-dark-muted' : 'bg-gray-100'}`}>
                 <div className={`h-1.5 rounded-full ${isDark ? 'bg-yellow-400' : 'bg-primary-blue'}`} style={{ width: `${pct}%` }} />
               </div>
-              <span className={`text-xs flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{row.paidDays}d</span>
+              <span className={`text-xs flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{row.paidDays}/{row.totalDays}</span>
             </div>
             <p className={`text-[11px] font-semibold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>
               ₹{(row.totalCollected || 0).toLocaleString('en-IN')} collected

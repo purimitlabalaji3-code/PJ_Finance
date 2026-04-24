@@ -8,12 +8,12 @@ import { ArrowLeft, Calculator } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const AddLoan = () => {
-  const { customers, addLoan, theme } = useApp();
+  const { customers, addLoan, loadAll, theme } = useApp();
   const isDark = theme === 'dark';
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    customerId: '', loanType: 'Daily', loanAmount: '', interest: '10', startDate: new Date().toISOString().split('T')[0]
+    customerId: '', loanType: 'Daily', loanAmount: '', interest: '10', startDate: new Date().toLocaleDateString('en-CA')
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -48,6 +48,8 @@ const AddLoan = () => {
     setLoading(true);
     try {
       await addLoan(form);
+      // Refresh all data (loans, collections, dashboard stats) before navigating
+      await loadAll();
       toast.success('Loan created successfully! 💰');
       navigate('/loans');
     } catch (err) {

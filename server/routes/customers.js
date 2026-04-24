@@ -33,9 +33,21 @@ router.post('/', auth, async (req, res) => {
     if (!name || !phone) return res.status(400).json({ error: 'Name and phone required' });
 
     // 1. Generate Next Customer Code (PJ-XXX)
-    // We get the max ID to ensure we don't have collisions even if some are deleted
-    const [lastCustomer] = await sql`SELECT id FROM customers ORDER BY id DESC LIMIT 1`;
-    const nextId = (lastCustomer?.id || 0) + 1;
+    // Extract the highest number from existing customer codes to ensure sequential order
+    const [lastCustomer] = await sql`
+      SELECT customer_code FROM customers 
+      WHERE customer_code LIKE 'PJ-%' 
+      ORDER BY customer_code DESC 
+      LIMIT 1
+    `;
+    
+    let nextId = 1;
+    if (lastCustomer?.customer_code) {
+      const parts = lastCustomer.customer_code.split('-');
+      if (parts.length === 2 && !isNaN(parts[1])) {
+        nextId = parseInt(parts[1], 10) + 1;
+      }
+    }
     const customerCode = `PJ-${String(nextId).padStart(3, '0')}`;
 
     const [row] = await sql`

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import Card from '../components/Card';
 import {
@@ -76,8 +76,25 @@ const SectionCard = ({ title, description, icon: Icon, isDark, children }) => (
 );
 
 const Reports = () => {
-  const { theme, customers, loans, collections } = useApp();
+  const { theme, customers, loans, collections, loadAll } = useApp();
   const isDark = theme === 'dark';
+
+  // ── Auto-refresh: poll every 30s + refresh when tab becomes visible ──
+  useEffect(() => {
+    loadAll(); // fresh load on mount
+
+    const interval = setInterval(loadAll, 30000); // every 30 seconds
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadAll();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
 
   // ── Live stats ─────────────────────────────────────────────────────────
   const totalCollected = collections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0);
