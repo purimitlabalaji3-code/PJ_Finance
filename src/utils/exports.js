@@ -31,10 +31,10 @@ const PRIMARY_BLUE = [37, 99, 235]; // Blue-600
 const DARK_BLUE = [30, 58, 138]; // Blue-900
 
 // ── Image Helper ───────────────────────────────────────────────────────────
-const getLogoDataUrl = async () => {
+const getImageDataUrl = async (src) => {
   return new Promise((resolve) => {
     const img = new Image();
-    img.src = '/download.png';
+    img.src = src;
     img.crossOrigin = 'Anonymous';
     img.onload = () => {
       const canvas = document.createElement('canvas');
@@ -42,7 +42,7 @@ const getLogoDataUrl = async () => {
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
+      resolve({ url: canvas.toDataURL('image/png'), w: img.width, h: img.height });
     };
     img.onerror = () => resolve(null);
   });
@@ -61,12 +61,26 @@ const addHeader = async (doc, title, subtitle = '') => {
   doc.setLineWidth(0.5);
   doc.roundedRect(10, 8, W - 20, 24, 2, 2, 'S');
 
-  const imgData = await getLogoDataUrl();
+  const [logoImg, centerImg] = await Promise.all([
+    getImageDataUrl('/logo.png'),
+    getImageDataUrl('/download.png')
+  ]);
+
   let textStartX = 14;
 
-  if (imgData) {
-    doc.addImage(imgData, 'PNG', 14, 11, 18, 18);
-    textStartX = 36;
+  if (logoImg) {
+    const aspect = logoImg.w / logoImg.h;
+    const h = 18;
+    const w = h * aspect;
+    doc.addImage(logoImg.url, 'PNG', 14, 11, w, h);
+    textStartX = 14 + w + 4;
+  }
+
+  if (centerImg) {
+    const aspect = centerImg.w / centerImg.h;
+    const h = 18;
+    const w = h * aspect;
+    doc.addImage(centerImg.url, 'PNG', (W / 2) - (w / 2), 11, w, h);
   }
 
   // Highlighted Brand Name
