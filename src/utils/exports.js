@@ -27,35 +27,69 @@ const GRAY  = [120, 120, 120];
 const GREEN = [16, 185, 129];
 const RED   = [239, 68, 68];
 const PINK  = [236, 72, 153];
+const PRIMARY_BLUE = [37, 99, 235]; // Blue-600
+const DARK_BLUE = [30, 58, 138]; // Blue-900
+
+// ── Image Helper ───────────────────────────────────────────────────────────
+const getLogoDataUrl = async () => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = '/download.png';
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => resolve(null);
+  });
+};
 
 // ── PDF Header ─────────────────────────────────────────────────────────────
-const addHeader = (doc, title, subtitle = '') => {
+const addHeader = async (doc, title, subtitle = '') => {
   const W = doc.internal.pageSize.getWidth();
 
-  // Dark header bar
-  doc.setFillColor(...DARK);
-  doc.rect(0, 0, W, 28, 'F');
+  // White background for light theme
+  doc.setFillColor(...WHITE);
+  doc.rect(0, 0, W, 35, 'F');
 
-  // Brand label
-  doc.setFontSize(7);
-  doc.setTextColor(...GOLD);
+  // Professional Box Border
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(10, 8, W - 20, 24, 2, 2, 'S');
+
+  const imgData = await getLogoDataUrl();
+  let textStartX = 14;
+
+  if (imgData) {
+    doc.addImage(imgData, 'PNG', 14, 11, 18, 18);
+    textStartX = 36;
+  }
+
+  // Highlighted Brand Name
+  doc.setFontSize(11);
+  doc.setTextColor(...PRIMARY_BLUE);
   doc.setFont('helvetica', 'bold');
-  doc.text('PJ FINANCE', 14, 9);
+  doc.text('PJ FINANCE', textStartX, 17);
 
   // Title
-  doc.setFontSize(13);
-  doc.setTextColor(...WHITE);
-  doc.text(title, 14, 19);
+  doc.setFontSize(14);
+  doc.setTextColor(...DARK);
+  doc.text(title, textStartX, 26);
 
   // Date on right
-  doc.setFontSize(7);
+  doc.setFontSize(8);
   doc.setTextColor(...GRAY);
-  doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, W - 14, 19, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, W - 14, 17, { align: 'right' });
 
   if (subtitle) {
-    doc.setFontSize(8);
-    doc.setTextColor(...GRAY);
-    doc.text(subtitle, 14, 25);
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    doc.text(subtitle, W - 14, 26, { align: 'right' });
   }
 };
 
@@ -96,12 +130,12 @@ export const exportCustomersCSV = (customers) => {
   );
 };
 
-export const exportCustomersPDF = (customers) => {
+export const exportCustomersPDF = async (customers) => {
   const doc = new jsPDF({ orientation: 'landscape' });
-  addHeader(doc, 'Customer Report', `Total Customers: ${customers.length}`);
+  await addHeader(doc, 'Customer Report', `Total Customers: ${customers.length}`);
 
   autoTable(doc, {
-    startY: 32,
+    startY: 38,
     head: [['Code', 'Name', 'Phone', 'Age', 'Gender', 'Aadhaar', 'Address', 'Status', 'Join Date']],
     body: customers.map((c) => [
       c.customerCode || '—',
@@ -109,8 +143,8 @@ export const exportCustomersPDF = (customers) => {
       c.aadhaar || '—', c.address || '—', c.status, c.joinDate || '—'
     ]),
     styles:      { fontSize: 8, cellPadding: 3, textColor: 40 },
-    headStyles:  { fillColor: DARK, textColor: GOLD, fontStyle: 'bold', fontSize: 8 },
-    alternateRowStyles: { fillColor: [248, 248, 248] },
+    headStyles:  { fillColor: DARK_BLUE, textColor: WHITE, fontStyle: 'bold', fontSize: 8 },
+    alternateRowStyles: { fillColor: [248, 250, 252] }, // Slate-50
     columnStyles: {
       0: { cellWidth: 18, fontStyle: 'bold' },
       7: { fontStyle: 'bold' },
@@ -135,7 +169,7 @@ export const exportLoansCSV = (loans) => {
   );
 };
 
-export const exportLoansPDF = (loans) => {
+export const exportLoansPDF = async (loans) => {
   const doc = new jsPDF({ orientation: 'landscape' });
   const totalDisbursed = loans.reduce((s, l) => s + Number(l.loanAmount), 0);
   const totalInterest  = loans.reduce((s, l) => {
@@ -143,10 +177,10 @@ export const exportLoansPDF = (loans) => {
     return s + (tot - Number(l.loanAmount));
   }, 0);
 
-  addHeader(doc, 'Loan Summary Report', `Total Loans: ${loans.length} | Disbursed: ${fmt(totalDisbursed)} | Interest: ${fmt(totalInterest)}`);
+  await addHeader(doc, 'Loan Summary Report', `Total Loans: ${loans.length} | Disbursed: ${fmt(totalDisbursed)} | Interest: ${fmt(totalInterest)}`);
 
   autoTable(doc, {
-    startY: 32,
+    startY: 38,
     head: [['Code', 'Customer', 'Principal', 'Interest %', 'Interest Amt', 'Total Payable', 'Daily EMI', 'Paid Days', 'Total Days', 'Status', 'Start Date']],
     body: loans.map(l => {
       const p   = Number(l.loanAmount);
@@ -154,8 +188,8 @@ export const exportLoansPDF = (loans) => {
       return [l.customerCode || '—', l.customerName, fmt(p), `${l.interest}%`, fmt(Math.round(tot - p)), fmt(Math.round(tot)), fmt(l.dailyAmount), l.paidDays, l.totalDays, l.status, l.startDate];
     }),
     styles:     { fontSize: 8, cellPadding: 3 },
-    headStyles: { fillColor: DARK, textColor: GOLD, fontStyle: 'bold', fontSize: 8 },
-    alternateRowStyles: { fillColor: [248, 248, 248] },
+    headStyles: { fillColor: DARK_BLUE, textColor: WHITE, fontStyle: 'bold', fontSize: 8 },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
       2: { textColor: [...PINK] },
       3: { textColor: [...PINK], fontStyle: 'bold' },
@@ -163,7 +197,7 @@ export const exportLoansPDF = (loans) => {
       8: { fontStyle: 'bold' },
     },
     didDrawCell: (data) => {
-      if (data.column.index === 8 && data.section === 'body') {
+      if (data.column.index === 9 && data.section === 'body') {
         const val = data.cell.raw;
         data.cell.styles.textColor = val === 'Active' ? [...GREEN] : [...GRAY];
       }
@@ -173,10 +207,10 @@ export const exportLoansPDF = (loans) => {
 
   // Totals row at bottom
   const finalY = (doc.lastAutoTable?.finalY || 100) + 6;
-  doc.setFillColor(...DARK);
+  doc.setFillColor(...DARK_BLUE);
   doc.roundedRect(14, finalY, doc.internal.pageSize.getWidth() - 28, 14, 2, 2, 'F');
   doc.setFontSize(8);
-  doc.setTextColor(...GOLD);
+  doc.setTextColor(...WHITE);
   doc.setFont('helvetica', 'bold');
   doc.text(`Total Disbursed: ${fmt(totalDisbursed)}   |   Total Interest: ${fmt(totalInterest)}   |   Total Payable: ${fmt(totalDisbursed + totalInterest)}`, 20, finalY + 9);
 
@@ -193,38 +227,38 @@ export const exportCollectionCSV = (collections) => {
   );
 };
 
-export const exportCollectionPDF = (collections) => {
+export const exportCollectionPDF = async (collections) => {
   const doc  = new jsPDF();
   const paid = collections.filter(c => c.status === 'Paid');
   const pend = collections.filter(c => c.status === 'Pending');
   const totalPaid    = paid.reduce((s, c) => s + Number(c.paidAmount), 0);
   const totalPending = pend.reduce((s, c) => s + Number(c.dueAmount), 0);
 
-  addHeader(doc, "Today's Collection Report",
+  await addHeader(doc, "Today's Collection Report",
     `${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`
   );
 
   // Summary boxes
   const W = doc.internal.pageSize.getWidth();
   const boxes = [
-    { label: 'Total Entries', value: String(collections.length), color: DARK },
+    { label: 'Total Entries', value: String(collections.length), color: DARK_BLUE },
     { label: 'Paid',          value: String(paid.length),        color: GREEN },
     { label: 'Pending',       value: String(pend.length),        color: RED   },
-    { label: 'Collected',     value: fmt(totalPaid),             color: DARK  },
+    { label: 'Collected',     value: fmt(totalPaid),             color: PRIMARY_BLUE },
   ];
   const bw = (W - 28) / 4;
   boxes.forEach((b, i) => {
     const x = 14 + i * (bw + 2);
     doc.setFillColor(...b.color);
-    doc.roundedRect(x, 32, bw, 16, 2, 2, 'F');
-    doc.setFontSize(7); doc.setTextColor(...GRAY);
-    doc.text(b.label, x + bw / 2, 37, { align: 'center' });
+    doc.roundedRect(x, 38, bw, 16, 2, 2, 'F');
+    doc.setFontSize(7); doc.setTextColor(230, 230, 230);
+    doc.text(b.label, x + bw / 2, 43, { align: 'center' });
     doc.setFontSize(10); doc.setTextColor(...WHITE); doc.setFont('helvetica', 'bold');
-    doc.text(b.value, x + bw / 2, 44, { align: 'center' });
+    doc.text(b.value, x + bw / 2, 50, { align: 'center' });
   });
 
   autoTable(doc, {
-    startY: 54,
+    startY: 60,
     head: [['Code', 'Customer', 'Due Amt', 'Paid Amt', 'Remaining', 'Status']],
     body: collections.map(c => {
       const remaining = Number(c.totalAmount || 0) - (Number(c.paidDays || 0) * Number(c.dailyAmount || 0));
@@ -238,8 +272,8 @@ export const exportCollectionPDF = (collections) => {
       ];
     }),
     styles:     { fontSize: 8, cellPadding: 3 },
-    headStyles: { fillColor: DARK, textColor: GOLD, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [248, 248, 248] },
+    headStyles: { fillColor: DARK_BLUE, textColor: WHITE, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
     didDrawCell: (data) => {
       if (data.column.index === 4 && data.section === 'body') {
         data.cell.styles.textColor = data.cell.raw === 'Paid' ? [...GREEN] : [...RED];
@@ -256,10 +290,11 @@ export const exportCollectionPDF = (collections) => {
   // Pending note
   if (pend.length > 0) {
     const fy = (doc.lastAutoTable?.finalY || 100) + 6;
-    doc.setFillColor(255, 240, 240);
-    doc.roundedRect(14, fy, W - 28, 10, 2, 2, 'F');
+    doc.setFillColor(254, 242, 242); // red-50
+    doc.setDrawColor(252, 165, 165); // red-300
+    doc.roundedRect(14, fy, W - 28, 10, 2, 2, 'FD');
     doc.setFontSize(8); doc.setTextColor(...RED);
-    doc.text(`⚠  ${pend.length} pending entries — Total pending: ${fmt(totalPending)}`, 18, fy + 7);
+    doc.text(`⚠  ${pend.length} pending entries — Total pending: ${fmt(totalPending)}`, 18, fy + 6.5);
   }
 
   doc.save(`PJ_Collection_${today()}.pdf`);
@@ -275,7 +310,7 @@ export const exportSummaryCSV = (data) => {
   );
 };
 
-export const exportSummaryPDF = ({ customers, loans, collections }) => {
+export const exportSummaryPDF = async ({ customers, loans, collections }) => {
   const doc = new jsPDF();
   const W   = doc.internal.pageSize.getWidth();
 
@@ -290,18 +325,18 @@ export const exportSummaryPDF = ({ customers, loans, collections }) => {
   const activeLoans    = loans.filter(l => l.status === 'Active').length;
   const completedLoans = loans.filter(l => l.status === 'Completed').length;
 
-  addHeader(doc, 'Business Summary Report', 'Complete financial overview');
+  await addHeader(doc, 'Business Summary Report', 'Complete financial overview');
 
   // KPI boxes — 2 rows × 4 cols
   const kpis = [
-    { label: 'Total Customers',  value: String(customers.length),     color: [30, 30, 80]  },
-    { label: 'Active Loans',     value: String(activeLoans),           color: [30, 80, 30]  },
-    { label: 'Completed Loans',  value: String(completedLoans),        color: [60, 60, 60]  },
-    { label: 'Total Disbursed',  value: fmt(totalDisbursed),           color: [80, 40, 10]  },
-    { label: 'Total Interest',   value: fmt(Math.round(totalInterest)), color: [80, 10, 60] },
-    { label: 'Total Payable',    value: fmt(Math.round(totalPayable)), color: [10, 60, 80]  },
-    { label: "Today Collected",  value: fmt(collected),                color: [10, 80, 50]  },
-    { label: "Today Pending",    value: fmt(pending),                  color: [80, 20, 20]  },
+    { label: 'Total Customers',  value: String(customers.length),     color: [30, 58, 138] }, // Blue
+    { label: 'Active Loans',     value: String(activeLoans),           color: [15, 118, 110] }, // Teal
+    { label: 'Completed Loans',  value: String(completedLoans),        color: [71, 85, 105] },  // Slate
+    { label: 'Total Disbursed',  value: fmt(totalDisbursed),           color: [180, 83, 9] },   // Amber
+    { label: 'Total Interest',   value: fmt(Math.round(totalInterest)), color: [157, 23, 77] },  // Pink
+    { label: 'Total Payable',    value: fmt(Math.round(totalPayable)), color: [67, 56, 202] },  // Indigo
+    { label: "Today Collected",  value: fmt(collected),                color: [21, 128, 61] },  // Green
+    { label: "Today Pending",    value: fmt(pending),                  color: [185, 28, 28] },  // Red
   ];
   const cols  = 4;
   const bw    = (W - 28) / cols;
@@ -310,18 +345,18 @@ export const exportSummaryPDF = ({ customers, loans, collections }) => {
     const row = Math.floor(i / cols);
     const col = i % cols;
     const x   = 14 + col * (bw + 2);
-    const y   = 32 + row * (bh + 3);
+    const y   = 38 + row * (bh + 3);
     doc.setFillColor(...k.color);
     doc.roundedRect(x, y, bw, bh, 2, 2, 'F');
-    doc.setFontSize(7);  doc.setTextColor(...GRAY);  doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);  doc.setTextColor(230, 230, 230);  doc.setFont('helvetica', 'normal');
     doc.text(k.label, x + bw / 2, y + 7,  { align: 'center' });
     doc.setFontSize(10); doc.setTextColor(...WHITE); doc.setFont('helvetica', 'bold');
     doc.text(k.value, x + bw / 2, y + 17, { align: 'center' });
   });
 
   // Loan details table
-  const tableY = 32 + 2 * (bh + 3) + 8;
-  doc.setFontSize(9); doc.setTextColor(...DARK); doc.setFont('helvetica', 'bold');
+  const tableY = 38 + 2 * (bh + 3) + 8;
+  doc.setFontSize(10); doc.setTextColor(...DARK); doc.setFont('helvetica', 'bold');
   doc.text('Loan Breakdown', 14, tableY - 2);
 
   autoTable(doc, {
@@ -333,10 +368,10 @@ export const exportSummaryPDF = ({ customers, loans, collections }) => {
       return [l.customerCode || '—', l.customerName, fmt(p), fmt(Math.round(tot - p)), fmt(Math.round(tot)), fmt(l.dailyAmount), l.status];
     }),
     styles:     { fontSize: 8, cellPadding: 3 },
-    headStyles: { fillColor: DARK, textColor: GOLD, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [248, 248, 248] },
+    headStyles: { fillColor: DARK_BLUE, textColor: WHITE, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
     didDrawCell: (data) => {
-      if (data.column.index === 5 && data.section === 'body') {
+      if (data.column.index === 6 && data.section === 'body') {
         data.cell.styles.textColor = data.cell.raw === 'Active' ? [...GREEN] : [...GRAY];
         data.cell.styles.fontStyle = 'bold';
       }
@@ -350,7 +385,7 @@ export const exportSummaryPDF = ({ customers, loans, collections }) => {
 // ══════════════════════════════════════════════════════════════════════════
 // 5. SINGLE LOAN STATEMENT — PDF
 // ══════════════════════════════════════════════════════════════════════════
-export const exportSingleLoanPDF = (loan, collections) => {
+export const exportSingleLoanPDF = async (loan, collections) => {
   const doc = new jsPDF();
   const W   = doc.internal.pageSize.getWidth();
   
@@ -362,14 +397,14 @@ export const exportSingleLoanPDF = (loan, collections) => {
   const totalCollected = loanCollections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0);
   const remaining = Math.max(0, totalPayable - totalCollected);
 
-  addHeader(doc, `Loan Statement — ${loan.customerName}`, `Loan ID: ${loan.id} | Code: ${loan.customerCode || '—'} | Started: ${loan.startDate}`);
+  await addHeader(doc, `Loan Statement — ${loan.customerName}`, `Loan ID: ${loan.id} | Code: ${loan.customerCode || '—'} | Started: ${loan.startDate}`);
 
   // Summary boxes
   const boxes = [
-    { label: 'Principal',       value: fmt(principal),      color: DARK },
+    { label: 'Principal',       value: fmt(principal),      color: DARK_BLUE },
     ...(!isTerm ? [
-      { label: 'Interest',        value: `${loan.interest}%`, color: DARK },
-      { label: 'Total Payable',   value: fmt(Math.round(totalPayable)), color: [30, 30, 80] }
+      { label: 'Interest',        value: `${loan.interest}%`, color: DARK_BLUE },
+      { label: 'Total Payable',   value: fmt(Math.round(totalPayable)), color: PRIMARY_BLUE }
     ] : []),
     { label: isTerm ? 'Interest Paid' : 'Total Collected', value: fmt(Math.round(totalCollected)), color: GREEN },
     { label: isTerm ? 'Principal Due' : 'Remaining',       value: fmt(Math.round(remaining)), color: RED },
@@ -379,35 +414,35 @@ export const exportSingleLoanPDF = (loan, collections) => {
   boxes.forEach((b, i) => {
     const x = 14 + i * (bw + 2);
     doc.setFillColor(...b.color);
-    doc.roundedRect(x, 32, bw, 16, 2, 2, 'F');
-    doc.setFontSize(7); doc.setTextColor(...GRAY);
-    doc.text(b.label, x + bw / 2, 37, { align: 'center' });
+    doc.roundedRect(x, 38, bw, 16, 2, 2, 'F');
+    doc.setFontSize(7); doc.setTextColor(230, 230, 230);
+    doc.text(b.label, x + bw / 2, 43, { align: 'center' });
     doc.setFontSize(10); doc.setTextColor(...WHITE); doc.setFont('helvetica', 'bold');
-    doc.text(b.value, x + bw / 2, 44, { align: 'center' });
+    doc.text(b.value, x + bw / 2, 50, { align: 'center' });
   });
 
   // Progress Bar
-  doc.setFillColor(...DARK);
-  doc.roundedRect(14, 52, W - 28, 6, 3, 3, 'F');
+  doc.setFillColor(241, 245, 249); // slate-100
+  doc.roundedRect(14, 58, W - 28, 6, 3, 3, 'F');
   
   const pct = totalPayable > 0 ? Math.min(100, (totalCollected / totalPayable) * 100) : 0;
   if (pct > 0) {
-    doc.setFillColor(...GOLD);
-    doc.roundedRect(14, 52, (W - 28) * (pct / 100), 6, 3, 3, 'F');
+    doc.setFillColor(...PRIMARY_BLUE);
+    doc.roundedRect(14, 58, (W - 28) * (pct / 100), 6, 3, 3, 'F');
   }
   
   doc.setFontSize(8);
-  doc.setTextColor(...GRAY);
-  doc.text(`Paid: ${fmt(totalCollected)}`, 14, 63);
-  doc.text(`Remaining: ${fmt(remaining)}`, W - 14, 63, { align: 'right' });
+  doc.setTextColor(...DARK);
+  doc.text(`Paid: ${fmt(totalCollected)}`, 14, 69);
+  doc.text(`Remaining: ${fmt(remaining)}`, W - 14, 69, { align: 'right' });
 
 
   // Payments Table
-  doc.setFontSize(10); doc.setTextColor(...DARK); doc.setFont('helvetica', 'bold');
-  doc.text('Payment History', 14, 75);
+  doc.setFontSize(11); doc.setTextColor(...DARK); doc.setFont('helvetica', 'bold');
+  doc.text('Payment History', 14, 80);
 
   autoTable(doc, {
-    startY: 80,
+    startY: 84,
     head: [['Day', 'Date', 'Status', 'Due Amt', 'Paid Amt', 'Note']],
     body: loanCollections.map((c, i) => {
       let extraNote = '';
@@ -427,8 +462,8 @@ export const exportSingleLoanPDF = (loan, collections) => {
       ];
     }),
     styles:     { fontSize: 8, cellPadding: 3 },
-    headStyles: { fillColor: DARK, textColor: GOLD, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [248, 248, 248] },
+    headStyles: { fillColor: DARK_BLUE, textColor: WHITE, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
     didDrawCell: (data) => {
       // Status column
       if (data.column.index === 2 && data.section === 'body') {
@@ -441,7 +476,7 @@ export const exportSingleLoanPDF = (loan, collections) => {
       }
       // Note column
       if (data.column.index === 5 && data.section === 'body' && data.cell.raw.includes('extra')) {
-        data.cell.styles.textColor = [...GOLD];
+        data.cell.styles.textColor = [...PRIMARY_BLUE];
       } else if (data.column.index === 5 && data.section === 'body' && data.cell.raw.includes('Short')) {
         data.cell.styles.textColor = [...RED];
       }

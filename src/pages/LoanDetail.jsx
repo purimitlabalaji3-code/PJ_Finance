@@ -103,9 +103,9 @@ const LoanDetail = () => {
         </div>
 
         <button
-          onClick={() => {
+          onClick={async () => {
             try {
-              exportSingleLoanPDF(loan, collections);
+              await exportSingleLoanPDF(loan, collections);
               toast.success(`Statement for ${loan.customerName} downloaded ✅`);
             } catch (err) {
               console.error(err);

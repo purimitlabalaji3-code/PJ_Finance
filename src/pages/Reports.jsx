@@ -118,8 +118,8 @@ const Reports = () => {
   };
 
   // ── Run with toast ─────────────────────────────────────────────────────
-  const run = (fn, label) => {
-    try { fn(); toast.success(`${label} downloaded ✅`); }
+  const run = async (fn, label) => {
+    try { await fn(); toast.success(`${label} downloaded ✅`); }
     catch (e) { console.error(e); toast.error(`Failed: ${label}`); }
   };
 
