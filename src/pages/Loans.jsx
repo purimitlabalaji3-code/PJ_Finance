@@ -38,7 +38,10 @@ const Loans = () => {
                 {row.customerName?.charAt(0).toUpperCase()}
               </div>
             }
-            <span className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{row.customerName}</span>
+            <div className="flex flex-col">
+              <span className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{row.customerName}</span>
+              <span className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{cust?.customerCode || '—'}</span>
+            </div>
           </div>
         );
       }

@@ -27,6 +27,7 @@ export const useApp = () => {
 const normalLoan = (l) => ({
   id:           l.id,
   customerId:   l.customer_id,
+  customerCode: l.customer_code,
   customerName: l.customer_name,
   loanAmount:   Number(l.loan_amount),
   interest:     Number(l.interest),

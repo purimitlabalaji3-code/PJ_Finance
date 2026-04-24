@@ -126,11 +126,11 @@ export const exportCustomersPDF = (customers) => {
 // ══════════════════════════════════════════════════════════════════════════
 export const exportLoansCSV = (loans) => {
   downloadCSV(`PJ_Loans_${today()}.csv`,
-    ['Customer', 'Principal (Rs)', 'Interest %', 'Interest Amt (Rs)', 'Total Payable (Rs)', 'Daily EMI (Rs)', 'Paid Days', 'Total Days', 'Status', 'Start Date'],
+    ['Code', 'Customer', 'Principal (Rs)', 'Interest %', 'Interest Amt (Rs)', 'Total Payable (Rs)', 'Daily EMI (Rs)', 'Paid Days', 'Total Days', 'Status', 'Start Date'],
     loans.map(l => {
       const p   = Number(l.loanAmount);
       const tot = Number(l.totalAmount) || p * (1 + Number(l.interest) / 100);
-      return [l.customerName, p, `${l.interest}%`, Math.round(tot - p), Math.round(tot), l.dailyAmount, l.paidDays, l.totalDays, l.status, l.startDate];
+      return [l.customerCode || '—', l.customerName, p, `${l.interest}%`, Math.round(tot - p), Math.round(tot), l.dailyAmount, l.paidDays, l.totalDays, l.status, l.startDate];
     })
   );
 };
@@ -147,11 +147,11 @@ export const exportLoansPDF = (loans) => {
 
   autoTable(doc, {
     startY: 32,
-    head: [['Customer', 'Principal', 'Interest %', 'Interest Amt', 'Total Payable', 'Daily EMI', 'Paid Days', 'Total Days', 'Status', 'Start Date']],
+    head: [['Code', 'Customer', 'Principal', 'Interest %', 'Interest Amt', 'Total Payable', 'Daily EMI', 'Paid Days', 'Total Days', 'Status', 'Start Date']],
     body: loans.map(l => {
       const p   = Number(l.loanAmount);
       const tot = Number(l.totalAmount) || p * (1 + Number(l.interest) / 100);
-      return [l.customerName, fmt(p), `${l.interest}%`, fmt(Math.round(tot - p)), fmt(Math.round(tot)), fmt(l.dailyAmount), l.paidDays, l.totalDays, l.status, l.startDate];
+      return [l.customerCode || '—', l.customerName, fmt(p), `${l.interest}%`, fmt(Math.round(tot - p)), fmt(Math.round(tot)), fmt(l.dailyAmount), l.paidDays, l.totalDays, l.status, l.startDate];
     }),
     styles:     { fontSize: 8, cellPadding: 3 },
     headStyles: { fillColor: DARK, textColor: GOLD, fontStyle: 'bold', fontSize: 8 },
@@ -326,11 +326,11 @@ export const exportSummaryPDF = ({ customers, loans, collections }) => {
 
   autoTable(doc, {
     startY: tableY,
-    head: [['Customer', 'Principal', 'Interest Amt', 'Total Payable', 'Daily EMI', 'Status']],
+    head: [['Code', 'Customer', 'Principal', 'Interest Amt', 'Total Payable', 'Daily EMI', 'Status']],
     body: loans.map(l => {
       const p   = Number(l.loanAmount);
       const tot = Number(l.totalAmount) || p * (1 + Number(l.interest) / 100);
-      return [l.customerName, fmt(p), fmt(Math.round(tot - p)), fmt(Math.round(tot)), fmt(l.dailyAmount), l.status];
+      return [l.customerCode || '—', l.customerName, fmt(p), fmt(Math.round(tot - p)), fmt(Math.round(tot)), fmt(l.dailyAmount), l.status];
     }),
     styles:     { fontSize: 8, cellPadding: 3 },
     headStyles: { fillColor: DARK, textColor: GOLD, fontStyle: 'bold' },
@@ -362,7 +362,7 @@ export const exportSingleLoanPDF = (loan, collections) => {
   const totalCollected = loanCollections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0);
   const remaining = Math.max(0, totalPayable - totalCollected);
 
-  addHeader(doc, `Loan Statement — ${loan.customerName}`, `Loan ID: ${loan.id} | Started: ${loan.startDate}`);
+  addHeader(doc, `Loan Statement — ${loan.customerName}`, `Loan ID: ${loan.id} | Code: ${loan.customerCode || '—'} | Started: ${loan.startDate}`);
 
   // Summary boxes
   const boxes = [

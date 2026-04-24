@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/', auth, async (req, res) => {
   try {
     const rows = await sql`
-      SELECT l.*, c.name AS customer_name, c.phone,
+      SELECT l.*, c.name AS customer_name, c.phone, c.customer_code,
       COALESCE((SELECT SUM(paid_amount) FROM collections WHERE loan_id = l.id AND status = 'Paid'), 0) as total_collected
       FROM loans l
       JOIN customers c ON c.id = l.customer_id
@@ -24,7 +24,7 @@ router.get('/', auth, async (req, res) => {
 router.get('/:id', auth, async (req, res) => {
   try {
     const [row] = await sql`
-      SELECT l.*, c.name AS customer_name, c.phone,
+      SELECT l.*, c.name AS customer_name, c.phone, c.customer_code,
       COALESCE((SELECT SUM(paid_amount) FROM collections WHERE loan_id = l.id AND status = 'Paid'), 0) as total_collected
       FROM loans l
       JOIN customers c ON c.id = l.customer_id
@@ -64,9 +64,9 @@ router.post('/', auth, async (req, res) => {
       RETURNING *
     `;
 
-    // Fetch with customer name
+    // Fetch with customer name and code
     const [full] = await sql`
-      SELECT l.*, c.name AS customer_name, 0 as total_collected FROM loans l
+      SELECT l.*, c.name AS customer_name, c.customer_code, 0 as total_collected FROM loans l
       JOIN customers c ON c.id = l.customer_id
       WHERE l.id = ${row.id}
     `;
