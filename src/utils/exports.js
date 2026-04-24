@@ -188,8 +188,8 @@ export const exportLoansPDF = (loans) => {
 // ══════════════════════════════════════════════════════════════════════════
 export const exportCollectionCSV = (collections) => {
   downloadCSV(`PJ_Collection_${today()}.csv`,
-    ['Customer', 'Phone', 'Due Amount (Rs)', 'Paid Amount (Rs)', 'Status', 'Date'],
-    collections.map(c => [c.customerName, c.phone || '', c.dueAmount, c.paidAmount, c.status, c.date || today()])
+    ['Code', 'Customer', 'Phone', 'Due Amount (Rs)', 'Paid Amount (Rs)', 'Status', 'Date'],
+    collections.map(c => [c.customerCode || '—', c.customerName, c.phone || '', c.dueAmount, c.paidAmount, c.status, c.date || today()])
   );
 };
 
