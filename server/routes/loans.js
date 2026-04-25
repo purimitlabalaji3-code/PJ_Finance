@@ -55,7 +55,7 @@ router.post('/', auth, async (req, res) => {
       // Term loan (15-Day / Monthly)
       // totalAmount is Principal. dailyAmount stores the fixed interest cycle amount.
       totalAmount = amt;
-      dailyAmount = parseFloat(interest || 0);
+      dailyAmount = Math.ceil(amt * parseFloat(interest || 0) / 100);
     }
 
     const [row] = await sql`

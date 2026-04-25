@@ -28,15 +28,15 @@ const AddLoan = () => {
   const isDaily = form.loanType === 'Daily';
   
   const totalAmount = isDaily ? loanAmt + (loanAmt * interest / 100) : loanAmt;
-  const dailyAmount = isDaily ? (loanAmt ? Math.ceil(totalAmount / 100) : 0) : interest;
+  const dailyAmount = isDaily ? (loanAmt ? Math.ceil(totalAmount / 100) : 0) : Math.ceil(loanAmt * interest / 100);
 
   const validate = () => {
     const e = {};
     if (!form.customerId) e.customerId = 'Please select a customer';
     if (!form.loanAmount) e.loanAmount = 'Loan amount is required';
     else if (loanAmt < 1000) e.loanAmount = 'Minimum loan amount is ₹1,000';
-    if (!form.interest) e.interest = isDaily ? 'Interest rate is required' : 'Interest amount is required';
-    else if (isDaily && (interest < 0 || interest > 100)) e.interest = 'Interest must be 0-100%';
+    if (!form.interest) e.interest = 'Interest rate is required';
+    else if (interest < 0 || interest > 100) e.interest = 'Interest must be 0-100%';
     if (!form.startDate) e.startDate = 'Start date is required';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -94,8 +94,8 @@ const AddLoan = () => {
             <FormInput label="Loan Amount (₹)" id="loanAmount" type="number"
               required placeholder="e.g. 100000"
               value={form.loanAmount} onChange={set('loanAmount')} error={errors.loanAmount} />
-            <FormInput label={isDaily ? "Interest (%)" : "Interest per Cycle (₹)"} id="interest" type="number"
-              required placeholder={isDaily ? "e.g. 10" : "e.g. 3000"}
+            <FormInput label="Interest (%)" id="interest" type="number"
+              required placeholder="e.g. 3"
               value={form.interest} onChange={set('interest')} error={errors.interest} />
             <FormInput label="Start Date" id="startDate" type="date"
               required value={form.startDate} onChange={set('startDate')}
@@ -120,7 +120,7 @@ const AddLoan = () => {
               </div>
               {/* Interest Amount */}
               <div className={`p-3 rounded-xl border-2 ${isDark ? 'bg-pink-500/10 border-pink-500/30' : 'bg-pink-50 border-pink-200'}`}>
-                <p className={`text-xs mb-1 ${isDark ? 'text-pink-300' : 'text-pink-600'}`}>{isDaily ? `Interest (${interest}%)` : `Interest / Cycle`}</p>
+                <p className={`text-xs mb-1 ${isDark ? 'text-pink-300' : 'text-pink-600'}`}>{isDaily ? `Interest (${interest}%)` : `Interest / Cycle (${interest}%)`}</p>
                 <p className={`text-base font-bold ${isDark ? 'text-pink-400' : 'text-pink-600'}`}>
                   ₹{isDaily ? (totalAmount - loanAmt).toLocaleString('en-IN') : dailyAmount.toLocaleString('en-IN')}
                 </p>
