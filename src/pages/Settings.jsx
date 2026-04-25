@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import Card from '@/components/Card';
-import { KeyRound, ImagePlus, FileText, Eye, EyeOff, Save, Upload, X } from 'lucide-react';
+import { KeyRound, ImagePlus, FileText, Eye, EyeOff, Save, Upload, X, Share2, Copy } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiChangePassword, apiSaveSettings } from '@/utils/api';
 
@@ -94,6 +94,25 @@ const Settings = () => {
   }`;
 
   const checkCls = `w-4 h-4 rounded accent-yellow-400 cursor-pointer`;
+
+  // ── Share App logic ─────────────────────────────────────
+  const handleShareApp = async () => {
+    const shareData = {
+      title: 'PJ Finance App',
+      text: 'Check out the PJ Finance Management App!',
+      url: window.location.origin,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.log('Error sharing:', err);
+      }
+    } else {
+      navigator.clipboard.writeText(shareData.url);
+      toast.success('App link copied to clipboard!');
+    }
+  };
 
   return (
     <div className="space-y-5 max-w-lg mx-auto pb-24 lg:pb-6">
@@ -203,6 +222,24 @@ const Settings = () => {
             <Save className="w-4 h-4" /> Save PDF Settings
           </button>
         </div>
+      </Card>
+
+      {/* ─── Share App ───────────────────────────────────── */}
+      <Card>
+        <SectionTitle
+          icon={Share2}
+          title="Share App"
+          subtitle="Share PJ Finance with your team or copy the link"
+          color={isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}
+        />
+        <button
+          onClick={handleShareApp}
+          className={`w-full flex items-center justify-center gap-2 py-3 mt-2 rounded-xl font-bold text-sm transition-all active:scale-95 ${
+            isDark ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/20' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100'
+          }`}
+        >
+          <Share2 className="w-4 h-4" /> Share App Link
+        </button>
       </Card>
     </div>
   );
