@@ -172,16 +172,26 @@ const LoanDetail = () => {
 
       {/* Progress */}
       <Card>
-        <div className="flex justify-between text-sm mb-2">
-          <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>Collection Progress</span>
-          <span className={`font-bold ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>{loan.paidDays} / {loan.totalDays} Days</span>
-        </div>
-        <div className={`h-3 rounded-full overflow-hidden ${isDark ? 'bg-dark-muted' : 'bg-gray-100'}`}>
-          <div
-            className={`h-3 rounded-full transition-all duration-700 ${isDark ? 'bg-yellow-400' : 'bg-primary-blue'}`}
-            style={{ width: `${loan.totalDays ? (loan.paidDays / loan.totalDays) * 100 : 0}%` }}
-          />
-        </div>
+        {(() => {
+          const collected = Number(loan.totalCollected || 0);
+          const dailyAmt = Number(loan.dailyAmount) || Math.ceil((Number(loan.loanAmount) * (1 + Number(loan.interest) / 100)) / (loan.totalDays || 1));
+          const calcPaidDays = dailyAmt > 0 ? Math.floor(collected / dailyAmt) : loan.paidDays;
+          const pct = loan.totalDays ? (calcPaidDays / loan.totalDays) * 100 : 0;
+          return (
+            <>
+              <div className="flex justify-between text-sm mb-2">
+                <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>Collection Progress</span>
+                <span className={`font-bold ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>{calcPaidDays} / {loan.totalDays} Days</span>
+              </div>
+              <div className={`h-3 rounded-full overflow-hidden ${isDark ? 'bg-dark-muted' : 'bg-gray-100'}`}>
+                <div
+                  className={`h-3 rounded-full transition-all duration-700 ${isDark ? 'bg-yellow-400' : 'bg-primary-blue'}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </>
+          );
+        })()}
         <div className="flex justify-between mt-2 text-xs">
           <span className={isDark ? 'text-emerald-400' : 'text-green-600'}>Paid: ₹{totalPaid.toLocaleString('en-IN')}</span>
           <span className={isDark ? 'text-accent-red' : 'text-red-500'}>Remaining: ₹{pending.toLocaleString('en-IN')}</span>

@@ -87,17 +87,20 @@ const Loans = () => {
     {
       header: 'Progress', key: 'paidDays',
       render: row => {
-        const pct = row.totalDays ? (row.paidDays / row.totalDays) * 100 : 0;
+        const collected = Number(row.totalCollected || 0);
+        const dailyAmt = Number(row.dailyAmount) || Math.ceil((Number(row.loanAmount) * (1 + Number(row.interest) / 100)) / (row.totalDays || 1));
+        const calcPaidDays = dailyAmt > 0 ? Math.floor(collected / dailyAmt) : row.paidDays;
+        const pct = row.totalDays ? (calcPaidDays / row.totalDays) * 100 : 0;
         return (
           <div className="space-y-1 min-w-[110px]">
             <div className="flex items-center gap-2">
               <div className={`flex-1 h-1.5 rounded-full ${isDark ? 'bg-dark-muted' : 'bg-gray-100'}`}>
                 <div className={`h-1.5 rounded-full ${isDark ? 'bg-yellow-400' : 'bg-primary-blue'}`} style={{ width: `${pct}%` }} />
               </div>
-              <span className={`text-xs flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{row.paidDays}/{row.totalDays}</span>
+              <span className={`text-xs flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{calcPaidDays}d / {row.totalDays}d</span>
             </div>
             <p className={`text-[11px] font-semibold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>
-              ₹{(row.totalCollected || 0).toLocaleString('en-IN')} collected
+              ₹{collected.toLocaleString('en-IN')} collected
             </p>
           </div>
         );

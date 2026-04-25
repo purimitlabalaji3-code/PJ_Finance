@@ -231,7 +231,10 @@ const Dashboard = () => {
           <h3 className={`font-bold text-base mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Recent Loans</h3>
           <div className={`divide-y ${isDark ? 'divide-dark-border' : 'divide-light-border'}`}>
             {recentLoans.map(loan => {
-              const progress = (loan.paidDays / loan.totalDays) * 100;
+              const collected = Number(loan.totalCollected || 0);
+              const dailyAmt = Number(loan.dailyAmount) || Math.ceil((Number(loan.loanAmount) * (1 + Number(loan.interest) / 100)) / (loan.totalDays || 1));
+              const calcPaidDays = dailyAmt > 0 ? Math.floor(collected / dailyAmt) : loan.paidDays;
+              const progress = loan.totalDays ? (calcPaidDays / loan.totalDays) * 100 : 0;
               return (
                 <div key={loan.id} className="py-3 flex items-center gap-3">
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}`}>
@@ -249,7 +252,7 @@ const Dashboard = () => {
                           style={{ width: `${progress}%` }}
                         />
                       </div>
-                      <span className={`text-xs flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{loan.paidDays}/{loan.totalDays}d</span>
+                      <span className={`text-xs flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{calcPaidDays}d / {loan.totalDays}d</span>
                     </div>
                   </div>
                 </div>
