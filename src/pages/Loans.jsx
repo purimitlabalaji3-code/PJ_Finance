@@ -1,18 +1,30 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Table from '../components/Table';
 import Modal from '../components/Modal';
-import { Plus, Trash2, TrendingUp, Calendar, IndianRupee, Eye, Percent } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, Calendar, IndianRupee, Eye, Percent, Clock, Zap, CalendarDays } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Loans = () => {
-  const { loans, deleteLoan, collections, customers, theme } = useApp();
+  const { loans, deleteLoan, customers, theme } = useApp();
   const isDark = theme === 'dark';
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('type') || 'Daily';
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const tabs = [
+    { id: 'Daily', label: 'Daily Collection', icon: Zap, color: 'text-yellow-400', bg: 'bg-yellow-400/10' },
+    { id: '15-Day', label: '15 Days Collection', icon: Clock, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+    { id: 'Monthly', label: 'Monthly Collection', icon: CalendarDays, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+  ];
+
+  const filteredLoans = useMemo(() => {
+    return loans.filter(l => l.loanType === activeTab);
+  }, [loans, activeTab]);
 
   const handleDelete = async () => {
     try {
@@ -76,28 +88,33 @@ const Loans = () => {
       )
     },
     {
-      header: 'Daily EMI', key: 'dailyAmount',
+      header: activeTab === 'Daily' ? 'Daily EMI' : 'Installment', key: 'dailyAmount',
       render: row => {
-        const daily = row.dailyAmount || Math.ceil(
-          (Number(row.loanAmount) * (1 + Number(row.interest) / 100)) / 100
-        );
-        return <span className={`font-semibold text-sm ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>₹{daily}/day</span>;
+        const amt = row.dailyAmount;
+        const suffix = row.loanType === 'Daily' ? '/day' : row.loanType === '15-Day' ? '/15d' : '/mo';
+        return <span className={`font-semibold text-sm ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>₹{amt}{suffix}</span>;
       }
     },
     {
       header: 'Progress', key: 'paidDays',
       render: row => {
         const collected = Number(row.totalCollected || 0);
-        const dailyAmt = Number(row.dailyAmount) || Math.ceil((Number(row.loanAmount) * (1 + Number(row.interest) / 100)) / (row.totalDays || 1));
+        const dailyAmt = Number(row.dailyAmount);
         const calcPaidDays = dailyAmt > 0 ? Math.floor(collected / dailyAmt) : row.paidDays;
+        const totalUnits = row.loanType === 'Daily' ? (row.totalDays || 100) : '—';
         const pct = row.totalDays ? (calcPaidDays / row.totalDays) * 100 : 0;
+        
         return (
           <div className="space-y-1 min-w-[110px]">
             <div className="flex items-center gap-2">
-              <div className={`flex-1 h-1.5 rounded-full ${isDark ? 'bg-dark-muted' : 'bg-gray-100'}`}>
-                <div className={`h-1.5 rounded-full ${isDark ? 'bg-yellow-400' : 'bg-primary-blue'}`} style={{ width: `${pct}%` }} />
-              </div>
-              <span className={`text-xs flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{calcPaidDays}d / {row.totalDays}d</span>
+              {row.loanType === 'Daily' && (
+                <div className={`flex-1 h-1.5 rounded-full ${isDark ? 'bg-dark-muted' : 'bg-gray-100'}`}>
+                  <div className={`h-1.5 rounded-full ${isDark ? 'bg-yellow-400' : 'bg-primary-blue'}`} style={{ width: `${pct}%` }} />
+                </div>
+              )}
+              <span className={`text-xs flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                {calcPaidDays} {row.loanType === 'Daily' ? ` / ${row.totalDays}d` : 'units'}
+              </span>
             </div>
             <p className={`text-[11px] font-semibold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>
               ₹{collected.toLocaleString('en-IN')} collected
@@ -112,7 +129,7 @@ const Loans = () => {
         const total = Number(row.totalAmount) || Number(row.loanAmount) * (1 + Number(row.interest) / 100);
         const collected = Number(row.totalCollected || 0);
         const remaining = Math.max(total - collected, 0);
-        const isPaid = remaining === 0;
+        const isPaid = remaining <= 0;
         return (
           <div className="space-y-0.5">
             <p className={`font-bold text-sm ${
@@ -141,31 +158,6 @@ const Loans = () => {
       )
     },
     {
-      header: 'Dates', key: 'startDate',
-      render: row => {
-        // Calculate end date skipping Sundays
-        let endDate = '—';
-        if (row.startDate && row.totalDays) {
-          const d = new Date(row.startDate);
-          let t = row.totalDays;
-          if (d.getDay() === 0) d.setDate(d.getDate() + 1); // Skip if start is Sunday
-          t--;
-          while (t > 0) {
-            d.setDate(d.getDate() + 1);
-            if (d.getDay() !== 0) t--;
-          }
-          endDate = d.toISOString().split('T')[0];
-        }
-
-        return (
-          <div className={`text-xs space-y-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            <p><span className={isDark ? 'text-gray-500' : 'text-gray-400'}>Start:</span> {row.startDate}</p>
-            <p><span className={isDark ? 'text-gray-500' : 'text-gray-400'}>End:</span> <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>{endDate}</span></p>
-          </div>
-        );
-      }
-    },
-    {
       header: 'Actions', key: 'actions',
       render: row => (
         <div className="flex items-center gap-1.5">
@@ -184,76 +176,109 @@ const Loans = () => {
     },
   ];
 
-  // Summary stats
-  const totalDisbursed = loans.reduce((s, l) => s + Number(l.loanAmount), 0);
-  const totalInterest = loans.reduce((s, l) => {
+  // Summary stats based on filtered loans
+  const totalDisbursed = filteredLoans.reduce((s, l) => s + Number(l.loanAmount), 0);
+  const totalInterest = filteredLoans.reduce((s, l) => {
     const total = Number(l.totalAmount) || Number(l.loanAmount) * (1 + Number(l.interest) / 100);
     return s + (total - Number(l.loanAmount));
   }, 0);
-  const totalPayable = loans.reduce((s, l) => {
+  const totalPayable = filteredLoans.reduce((s, l) => {
     return s + (Number(l.totalAmount) || Number(l.loanAmount) * (1 + Number(l.interest) / 100));
   }, 0);
-  const totalRemaining = loans.reduce((s, l) => {
+  const totalRemaining = filteredLoans.reduce((s, l) => {
     const total = Number(l.totalAmount) || Number(l.loanAmount) * (1 + Number(l.interest) / 100);
     const collected = Number(l.totalCollected || 0);
     return s + Math.max(total - collected, 0);
   }, 0);
-  const activeCount = loans.filter(l => l.status === 'Active').length;
 
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Loan Management</h2>
-          <p className={`text-sm mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{loans.length} total loans</p>
+          <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Loan Management</h2>
+          <p className={`text-sm mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Track and manage your collection cycles</p>
         </div>
-        <Button icon={Plus} onClick={() => navigate('/loans/add')}>Add Loan</Button>
+        <Button icon={Plus} onClick={() => navigate('/loans/add')}>Add New Loan</Button>
+      </div>
+
+      {/* Modern Tab System */}
+      <div className={`p-1 rounded-2xl flex gap-1 ${isDark ? 'bg-dark-muted' : 'bg-gray-100'}`}>
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setSearchParams({ type: tab.id })}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                isActive
+                  ? isDark ? 'bg-dark-bg text-white shadow-xl' : 'bg-white text-primary-blue shadow-md'
+                  : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Icon className={`w-4 h-4 ${isActive ? tab.color : 'opacity-50'}`} />
+              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="sm:hidden">{tab.id}</span>
+              <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] ${
+                isActive 
+                  ? isDark ? 'bg-white/10 text-white' : 'bg-primary-blue/10 text-primary-blue'
+                  : isDark ? 'bg-white/5 text-gray-500' : 'bg-gray-200 text-gray-600'
+              }`}>
+                {loans.filter(l => l.loanType === tab.id).length}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}`}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="flex items-center gap-3 relative overflow-hidden group">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 duration-300 ${isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-50 text-primary-blue'}`}>
             <IndianRupee className="w-5 h-5" />
           </div>
           <div>
-            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Total Disbursed</p>
+            <p className={`text-[11px] font-medium uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Disbursed</p>
             <p className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>₹{totalDisbursed.toLocaleString('en-IN')}</p>
           </div>
         </Card>
-        <Card className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-pink-500/10 text-pink-400' : 'bg-pink-50 text-pink-600'}`}>
+        <Card className="flex items-center gap-3 relative overflow-hidden group">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 duration-300 ${isDark ? 'bg-pink-500/10 text-pink-400' : 'bg-pink-50 text-pink-600'}`}>
             <Percent className="w-5 h-5" />
           </div>
           <div>
-            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Total Interest</p>
+            <p className={`text-[11px] font-medium uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Interest</p>
             <p className={`text-base font-bold ${isDark ? 'text-pink-400' : 'text-pink-600'}`}>₹{Math.round(totalInterest).toLocaleString('en-IN')}</p>
           </div>
         </Card>
-        <Card className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}`}>
+        <Card className="flex items-center gap-3 relative overflow-hidden group">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 duration-300 ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}`}>
             <TrendingUp className="w-5 h-5" />
           </div>
           <div>
-            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Total Payable</p>
+            <p className={`text-[11px] font-medium uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Payable</p>
             <p className={`text-base font-bold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>₹{Math.round(totalPayable).toLocaleString('en-IN')}</p>
           </div>
         </Card>
-        <Card className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-orange-500/10 text-orange-400' : 'bg-orange-50 text-orange-600'}`}>
-            <IndianRupee className="w-5 h-5" />
+        <Card className="flex items-center gap-3 relative overflow-hidden group">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 duration-300 ${isDark ? 'bg-orange-500/10 text-orange-400' : 'bg-orange-50 text-orange-600'}`}>
+            <Calendar className="w-5 h-5" />
           </div>
           <div>
-            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Pending / Remaining</p>
+            <p className={`text-[11px] font-medium uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Remaining</p>
             <p className={`text-base font-bold ${isDark ? 'text-orange-400' : 'text-orange-600'}`}>₹{Math.round(totalRemaining).toLocaleString('en-IN')}</p>
           </div>
         </Card>
       </div>
 
       {/* Table */}
-      <Card className="!p-0 overflow-hidden">
-        <Table columns={columns} data={loans} emptyMessage="No loans found. Add a loan to get started!" />
+      <Card className="!p-0 overflow-hidden border-none shadow-xl">
+        <Table 
+          columns={columns} 
+          data={filteredLoans} 
+          emptyMessage={`No ${activeTab} loans found. Add one to get started!`} 
+        />
       </Card>
 
       {/* Delete Modal */}

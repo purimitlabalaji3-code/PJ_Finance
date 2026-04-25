@@ -154,4 +154,26 @@ router.patch('/:id/unpay', auth, async (req, res) => {
   }
 });
 
+// GET /api/collections/summary — for dashboard chart (last 7 days)
+router.get('/summary', auth, async (req, res) => {
+  try {
+    const rows = await sql`
+      SELECT 
+        TO_CHAR(date, 'Dy') as day,
+        SUM(paid_amount) as amount,
+        date
+      FROM collections
+      WHERE date > CURRENT_DATE - INTERVAL '7 days'
+      GROUP BY date
+      ORDER BY date ASC
+    `;
+    
+    // Ensure all days are present (even if 0) and formatted correctly
+    res.json(rows.map(r => ({ day: r.day, amount: Number(r.amount) })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 export default router;

@@ -11,6 +11,7 @@ import {
   apiFetchCustomers, apiAddCustomer, apiUpdateCustomer, apiDeleteCustomer,
   apiFetchLoans, apiAddLoan, apiDeleteLoan,
   apiFetchCollections, apiGenerateCollections, apiAddManualCollection, apiMarkPaid, apiMarkUnpaid,
+  apiFetchCollectionSummary,
 } from '@/utils/api';
 
 import toast from 'react-hot-toast';
@@ -79,6 +80,7 @@ export const AppProvider = ({ children }) => {
   const [customers, setCustomers] = useState([]);
   const [loans, setLoans] = useState([]);
   const [collections, setCollections] = useState([]);
+  const [collectionSummary, setCollectionSummary] = useState([]);
   // Use local date (not UTC) so IST users see the correct day
   const [collectionDate, setCollectionDate] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [loading, setLoading] = useState(false);
@@ -147,14 +149,16 @@ export const AppProvider = ({ children }) => {
       // Auto-generate collections for the current selected date
       await apiGenerateCollections(collectionDate).catch(() => {});
 
-      const [c, l, col] = await Promise.all([
+      const [c, l, col, summary] = await Promise.all([
         apiFetchCustomers(),
         apiFetchLoans(),
         apiFetchCollections(collectionDate),
+        apiFetchCollectionSummary().catch(() => []),
       ]);
       setCustomers(Array.isArray(c) ? c.map(normalCustomer) : []);
       setLoans(Array.isArray(l) ? l.map(normalLoan) : []);
       setCollections(Array.isArray(col) ? col.map(normalCollection) : []);
+      setCollectionSummary(Array.isArray(summary) ? summary : []);
     } catch (err) {
       console.error('Load error:', err);
       // If session is expired, force logout
@@ -277,6 +281,7 @@ export const AppProvider = ({ children }) => {
       loans, addLoan, deleteLoan,
       collections, setCollections, markCollectionPaid, markCollectionPending,
       generateCollections, addManualCollection, collectionDate, changeCollectionDate,
+      collectionSummary,
       loading, loadAll,
       stats,
     }}>
