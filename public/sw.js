@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pj-finance-v3';
+const CACHE_NAME = 'pj-finance-v2';
 
 // Assets to cache immediately (App Shell)
 const STATIC_ASSETS = [
