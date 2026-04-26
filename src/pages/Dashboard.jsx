@@ -125,6 +125,8 @@ const Dashboard = () => {
   const fortnightlyLoans = loans.filter(l => l.loanType === '15-Day').length;
   const monthlyLoans = loans.filter(l => l.loanType === 'Monthly').length;
 
+  const efficiency = todayTotal > 0 ? (todayPaid / todayTotal) * 100 : 0;
+
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
