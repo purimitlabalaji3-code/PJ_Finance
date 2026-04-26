@@ -78,7 +78,7 @@ const Dashboard = () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, []);
+  }, [loadAll]);
 
   const chartColor = isDark ? '#FFD700' : '#2563EB';
   const textColor = isDark ? '#9CA3AF' : '#6B7280';

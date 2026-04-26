@@ -135,7 +135,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await apiLogout();
     } catch {
@@ -147,7 +147,7 @@ export const AppProvider = ({ children }) => {
       setLoans([]);
       setCollections([]);
     }
-  };
+  }, []);
 
   // ── Data Loading (Optimized) ─────────────────────────────────────────
   // Debounce the load to prevent rapid fire re-renders/fetches
@@ -186,7 +186,7 @@ export const AppProvider = ({ children }) => {
         if (err.message === 'Session expired' || err.message === 'No token') {
           logout();
         } else {
-          toast.error('Failed to load data. Check connection.');
+          toast.error(`Error: ${err.message || 'Connection failed'}`);
         }
       } finally {
         setLoading(false);
@@ -200,12 +200,14 @@ export const AppProvider = ({ children }) => {
   }, [debouncedLoad, collectionDate, isLoggedIn]);
 
   useEffect(() => { 
-    loadAll(); 
+    if (isLoggedIn) {
+      loadAll();
+    }
     return () => debouncedLoad.cancel();
-  }, [loadAll]);
+  }, [loadAll, isLoggedIn]);
 
   // Handle changing collection date manually (re-fetches only collections to save bandwidth)
-  const changeCollectionDate = async (newDate) => {
+  const changeCollectionDate = useCallback(async (newDate) => {
     setCollectionDate(newDate);
     setLoading(true);
     try {
@@ -219,29 +221,29 @@ export const AppProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // ── Customer CRUD ──────────────────────────────────────────────────
-  const addCustomer = async (customer) => {
+  const addCustomer = useCallback(async (customer) => {
     const row = await apiAddCustomer(customer);
     const nc = normalCustomer(row);
     setCustomers(prev => [nc, ...prev]);
     return nc;
-  };
+  }, []);
 
-  const updateCustomer = async (id, data) => {
+  const updateCustomer = useCallback(async (id, data) => {
     const row = await apiUpdateCustomer(id, data);
     const nc = normalCustomer(row);
     setCustomers(prev => prev.map(c => c.id === id ? nc : c));
-  };
+  }, []);
 
-  const deleteCustomer = async (id) => {
+  const deleteCustomer = useCallback(async (id) => {
     await apiDeleteCustomer(id);
     setCustomers(prev => prev.filter(c => c.id !== id));
-  };
+  }, []);
 
   // ── Loan CRUD ──────────────────────────────────────────────────────
-  const addLoan = async (loan) => {
+  const addLoan = useCallback(async (loan) => {
     const row = await apiAddLoan(loan);
     const nl = normalLoan(row);
     setLoans(prev => [nl, ...prev]);
@@ -256,22 +258,22 @@ export const AppProvider = ({ children }) => {
     }
 
     return nl;
-  };
+  }, [collectionDate]);
 
 
-  const deleteLoan = async (id) => {
+  const deleteLoan = useCallback(async (id) => {
     await apiDeleteLoan(id);
     setLoans(prev => prev.filter(l => l.id !== id));
-  };
+  }, []);
 
   // ── Collections ────────────────────────────────────────────────────
-  const generateCollections = async (date) => {
+  const generateCollections = useCallback(async (date) => {
     const result = await apiGenerateCollections(date);
     await loadAll();
     return result;
-  };
+  }, [loadAll]);
 
-  const markCollectionPaid = async (id, amount) => {
+  const markCollectionPaid = useCallback(async (id, amount) => {
     const row = await apiMarkPaid(id, amount);
     const nc = normalCollection(row);
     setCollections(prev => prev.map(c => c.id === id ? nc : c));
@@ -283,14 +285,14 @@ export const AppProvider = ({ children }) => {
     apiFetchAllCollections().then(hist => {
       setAllCollections(Array.isArray(hist) ? hist.map(normalCollection) : []);
     });
-  };
+  }, []);
 
-  const addManualCollection = async (data) => {
+  const addManualCollection = useCallback(async (data) => {
     await apiAddManualCollection(data);
     loadAll();
-  };
+  }, [loadAll]);
 
-  const markCollectionPending = async (id) => {
+  const markCollectionPending = useCallback(async (id) => {
     const row = await apiMarkUnpaid(id);
     const nc = normalCollection(row);
     setCollections(prev => prev.map(c => c.id === id ? nc : c));
@@ -302,7 +304,7 @@ export const AppProvider = ({ children }) => {
     apiFetchAllCollections().then(hist => {
       setAllCollections(Array.isArray(hist) ? hist.map(normalCollection) : []);
     });
-  };
+  }, []);
 
   // ── Stats ──────────────────────────────────────────────────────────
   const stats = {

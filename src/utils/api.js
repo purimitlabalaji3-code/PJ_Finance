@@ -1,7 +1,7 @@
 // src/utils/api.js — Production-grade Safe Fetch Wrapper
 const BASE = import.meta.env.VITE_API_URL ?? '';
-const DEFAULT_TIMEOUT = 15000; // 15s for normal requests
-const SESSION_TIMEOUT = 20000; // 20s for session check (Vercel cold starts)
+const DEFAULT_TIMEOUT = 30000; // Increased to 30s for slow mobile networks and cold starts
+const SESSION_TIMEOUT = 45000; // Increased to 45s
 
 
 /**
