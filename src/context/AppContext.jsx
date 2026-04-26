@@ -15,6 +15,7 @@ import {
 } from '@/utils/api';
 
 import toast from 'react-hot-toast';
+import { debounce } from 'lodash';
 
 const AppContext = createContext();
 
@@ -148,39 +149,60 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // ── Data Loading ───────────────────────────────────────────────────
-  const loadAll = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Auto-generate collections for the current selected date
-      await apiGenerateCollections(collectionDate).catch(() => {});
+  // ── Data Loading (Optimized) ─────────────────────────────────────────
+  // Debounce the load to prevent rapid fire re-renders/fetches
+  const debouncedLoad = useMemo(
+    () => debounce(async (date, isLoggedIn) => {
+      if (!isLoggedIn) return;
+      setLoading(true);
+      try {
+        // 1. Generate/Fetch today's specific collections
+        await apiGenerateCollections(date).catch(() => {});
+        const [c, l, colToday, summary] = await Promise.all([
+          apiFetchCustomers(),
+          apiFetchLoans(),
+          apiFetchCollections(date),
+          apiFetchCollectionSummary().catch(() => []),
+        ]);
 
-      const [c, l, colToday, colHistory, summary] = await Promise.all([
-        apiFetchCustomers(),
-        apiFetchLoans(),
-        apiFetchCollections(collectionDate),
-        apiFetchAllCollections(),
-        apiFetchCollectionSummary().catch(() => []),
-      ]);
-      setCustomers(Array.isArray(c) ? c.map(normalCustomer) : []);
-      setLoans(Array.isArray(l) ? l.map(normalLoan) : []);
-      setCollections(Array.isArray(colToday) ? colToday.map(normalCollection) : []);
-      setAllCollections(Array.isArray(colHistory) ? colHistory.map(normalCollection) : []);
-      setCollectionSummary(Array.isArray(summary) ? summary : []);
-    } catch (err) {
-      console.error('Load error:', err);
-      // If session is expired, force logout
-      if (err.message === 'Session expired' || err.message === 'No token') {
-        logout();
-      } else {
-        toast.error('Failed to load data. Check your connection.');
+        setCustomers(Array.isArray(c) ? c.map(normalCustomer) : []);
+        setLoans(Array.isArray(l) ? l.map(normalLoan) : []);
+        setCollections(Array.isArray(colToday) ? colToday.map(normalCollection) : []);
+        setCollectionSummary(Array.isArray(summary) ? summary : []);
+
+        // 2. Fetch full history ONLY if we don't have it yet to save significant bandwidth
+        // History is large and doesn't change every second.
+        setAllCollections(prev => {
+          if (prev.length === 0) {
+            apiFetchAllCollections().then(hist => {
+              setAllCollections(Array.isArray(hist) ? hist.map(normalCollection) : []);
+            });
+          }
+          return prev;
+        });
+
+      } catch (err) {
+        console.error('Load error:', err);
+        if (err.message === 'Session expired' || err.message === 'No token') {
+          logout();
+        } else {
+          toast.error('Failed to load data. Check connection.');
+        }
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [isLoggedIn, collectionDate]);
+    }, 400),
+    [logout]
+  );
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  const loadAll = useCallback(() => {
+    debouncedLoad(collectionDate, isLoggedIn);
+  }, [debouncedLoad, collectionDate, isLoggedIn]);
+
+  useEffect(() => { 
+    loadAll(); 
+    return () => debouncedLoad.cancel();
+  }, [loadAll]);
 
   // Handle changing collection date manually (re-fetches only collections to save bandwidth)
   const changeCollectionDate = async (newDate) => {
@@ -257,11 +279,15 @@ export const AppProvider = ({ children }) => {
     setLoans(prev => prev.map(l =>
       l.id === nc.loanId ? { ...l, paidDays: l.paidDays + 1 } : l
     ));
+    // Quietly update history in background after a mutation
+    apiFetchAllCollections().then(hist => {
+      setAllCollections(Array.isArray(hist) ? hist.map(normalCollection) : []);
+    });
   };
 
   const addManualCollection = async (data) => {
     await apiAddManualCollection(data);
-    await loadAll();
+    loadAll();
   };
 
   const markCollectionPending = async (id) => {
@@ -272,6 +298,10 @@ export const AppProvider = ({ children }) => {
     setLoans(prev => prev.map(l =>
       l.id === nc.loanId ? { ...l, paidDays: Math.max(l.paidDays - 1, 0) } : l
     ));
+    // Quietly update history in background
+    apiFetchAllCollections().then(hist => {
+      setAllCollections(Array.isArray(hist) ? hist.map(normalCollection) : []);
+    });
   };
 
   // ── Stats ──────────────────────────────────────────────────────────
