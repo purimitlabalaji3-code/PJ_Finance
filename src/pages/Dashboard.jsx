@@ -142,7 +142,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Group 1: Customers & Loan Types */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
@@ -184,11 +184,11 @@ const Dashboard = () => {
       {/* Group 2: Financial Overview (All-Time) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
-          title="Total Disbursed"
-          value={totalDisbursed}
-          icon={CreditCard}
+          title="Total Interest"
+          value={Math.round(totalInterest)}
+          icon={Percent}
           prefix="₹"
-          color={isDark ? 'bg-gray-500/10 text-gray-400' : 'bg-gray-50 text-gray-600'}
+          color={isDark ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-50 text-purple-600'}
         />
         <StatCard
           title="Total Collected"
@@ -197,24 +197,6 @@ const Dashboard = () => {
           prefix="₹"
           color={isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}
         />
-        <StatCard
-          title="Expected Interest"
-          value={Math.round(totalInterest)}
-          icon={Percent}
-          prefix="₹"
-          color={isDark ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-50 text-purple-600'}
-        />
-        <StatCard
-          title="Paid Interest"
-          value={Math.round(totalPaidInterest)}
-          icon={IndianRupee}
-          prefix="₹"
-          color={isDark ? 'bg-pink-500/10 text-pink-400' : 'bg-pink-50 text-pink-600'}
-        />
-      </div>
-
-      {/* Group 3: Market & Daily Status */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 opacity-90">
         <StatCard
           title="Remaining Bal."
           value={Math.round(totalDisbursed + totalInterest - totalCollectedAllTime)}
@@ -231,19 +213,40 @@ const Dashboard = () => {
           prefix="₹"
           color={isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-yellow-50 text-yellow-600'}
         />
-        <StatCard
-          title="Today's Interest"
-          value={Math.round(todayInterestCollected)}
-          icon={Activity}
-          prefix="₹"
-          color={isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}
-        />
+      </div>
+
+      {/* Group 3: Market & Daily Status */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title="Today Pending"
           value={stats.pendingAmount}
           icon={AlertCircle}
           prefix="₹"
           color={isDark ? 'bg-red-500/10 text-accent-red' : 'bg-red-50 text-red-500'}
+        />
+        <StatCard
+          title="Efficiency"
+          value={`${Math.round(efficiency)}%`}
+          icon={Activity}
+          change="Collection rate"
+          changeType="up"
+          color={isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}
+        />
+        <StatCard
+          title="Total Active"
+          value={loans.filter(l => l.status === 'Active').length}
+          icon={Zap}
+          change="All Types"
+          changeType="up"
+          color={isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}
+        />
+        <StatCard
+          title="Total Disbursed"
+          value={totalDisbursed}
+          icon={CreditCard}
+          prefix="₹"
+          color={isDark ? 'bg-gray-500/10 text-gray-400' : 'bg-gray-50 text-gray-600'}
+          onClick={() => navigate('/loans')}
         />
       </div>
 

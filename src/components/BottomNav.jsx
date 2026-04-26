@@ -38,7 +38,7 @@ const BottomNav = () => {
           to={path}
           end={path === '/'}
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center flex-1 py-2 px-1 gap-0.5 transition-all duration-200 relative
+            `flex flex-col items-center justify-center flex-1 py-1.5 px-1 gap-0.5 transition-all duration-200 relative
             ${isActive
               ? isDark
                 ? 'text-yellow-400'
@@ -53,22 +53,22 @@ const BottomNav = () => {
             <>
               {/* Active indicator line at top */}
               {isActive && (
-                <span className={`absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full ${isDark ? 'bg-yellow-400' : 'bg-primary-blue'}`} />
+                <span className={`absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full ${isDark ? 'bg-yellow-400' : 'bg-primary-blue'}`} />
               )}
 
               {/* Icon with active background pill */}
-              <span className={`w-10 h-7 flex items-center justify-center rounded-full transition-all duration-200 ${
+              <span className={`w-9 h-6 flex items-center justify-center rounded-full transition-all duration-200 ${
                 isActive
                   ? isDark
-                    ? 'bg-yellow-400/15'
+                    ? 'bg-yellow-400/10'
                     : 'bg-blue-50'
                   : ''
               }`}>
-                <Icon className={`transition-all duration-200 ${isActive ? 'w-5 h-5' : 'w-5 h-5'}`} />
+                <Icon className={`transition-all duration-200 ${isActive ? 'w-4 h-4' : 'w-4 h-4'}`} />
               </span>
 
               {/* Label */}
-              <span className={`text-[10px] font-semibold leading-none transition-all duration-200 ${
+              <span className={`text-[9px] font-bold leading-none transition-all duration-200 ${
                 isActive
                   ? isDark ? 'text-yellow-400' : 'text-primary-blue'
                   : isDark ? 'text-gray-500' : 'text-gray-400'

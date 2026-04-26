@@ -63,11 +63,11 @@
   }
 
   .card {
-    @apply rounded-2xl p-5;
+    @apply rounded-2xl p-4 sm:p-5;
   }
 
   .stat-card {
-    @apply card flex flex-col gap-3;
+    @apply card flex flex-col gap-2 sm:gap-3;
   }
 
   /* Dark theme specifics */

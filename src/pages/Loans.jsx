@@ -334,34 +334,36 @@ const Loans = () => {
         <Button icon={Plus} onClick={() => navigate('/loans/add')}>Add New Loan</Button>
       </div>
 
-      {/* Modern Tab System */}
-      <div className={`p-1 rounded-2xl flex gap-1 ${isDark ? 'bg-dark-muted' : 'bg-gray-100'}`}>
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setSearchParams({ type: tab.id })}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                isActive
-                  ? isDark ? 'bg-dark-bg text-white shadow-xl' : 'bg-white text-primary-blue shadow-md'
-                  : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${isActive ? tab.color : 'opacity-50'}`} />
-              <span className="hidden sm:inline">{tab.label}</span>
-              <span className="sm:hidden">{tab.id}</span>
-              <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] ${
-                isActive 
-                  ? isDark ? 'bg-white/10 text-white' : 'bg-primary-blue/10 text-primary-blue'
-                  : isDark ? 'bg-white/5 text-gray-500' : 'bg-gray-200 text-gray-600'
-              }`}>
-                {loans.filter(l => l.loanType === tab.id).length}
-              </span>
-            </button>
-          );
-        })}
+      {/* Modern Tab System — Horizontal Scroll for Mobile */}
+      <div className="overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className={`p-1 rounded-2xl flex gap-1 min-w-[340px] sm:min-w-0 ${isDark ? 'bg-dark-muted' : 'bg-gray-100'}`}>
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setSearchParams({ type: tab.id })}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 ${
+                  isActive
+                    ? isDark ? 'bg-dark-bg text-white shadow-xl' : 'bg-white text-primary-blue shadow-md'
+                    : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isActive ? tab.color : 'opacity-50'}`} />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.id}</span>
+                <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[9px] ${
+                  isActive 
+                    ? isDark ? 'bg-white/10 text-white' : 'bg-primary-blue/10 text-primary-blue'
+                    : isDark ? 'bg-white/5 text-gray-500' : 'bg-gray-200 text-gray-600'
+                }`}>
+                  {loans.filter(l => l.loanType === tab.id).length}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Summary Cards */}
