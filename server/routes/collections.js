@@ -33,9 +33,12 @@ router.get('/', auth, async (req, res) => {
 router.get('/all', auth, async (req, res) => {
   try {
     const rows = await sql`
-      SELECT col.*, c.name AS customer_name, c.phone, c.customer_code
+      SELECT col.*, 
+             c.name AS customer_name, c.phone, c.customer_code,
+             l.total_amount, l.paid_days, l.daily_amount
       FROM collections col
       JOIN customers c ON c.id = col.customer_id
+      JOIN loans l ON l.id = col.loan_id
       ORDER BY col.date DESC, col.created_at DESC
     `;
     res.json(rows);
@@ -69,7 +72,26 @@ router.post('/generate', auth, async (req, res) => {
       SELECT id, customer_id, daily_amount, ${date}
       FROM loans l
       WHERE status = 'Active' 
-        AND (loan_type = 'Daily' OR loan_type IS NULL) 
+        AND EXTRACT(DOW FROM ${date}::date) != 0
+        AND (
+          (loan_type = 'Daily' OR loan_type IS NULL)
+          OR (
+            loan_type = '15-Day' 
+            AND (
+              MOD((${date}::date - start_date::date), 15) = 0 
+              OR (MOD((${date}::date - start_date::date), 15) = 1 AND EXTRACT(DOW FROM ${date}::date) = 1)
+            ) 
+            AND ${date}::date > start_date
+          )
+          OR (
+            loan_type = 'Monthly' 
+            AND (
+              MOD((${date}::date - start_date::date), 30) = 0 
+              OR (MOD((${date}::date - start_date::date), 30) = 1 AND EXTRACT(DOW FROM ${date}::date) = 1)
+            ) 
+            AND ${date}::date > start_date
+          )
+        )
         AND start_date <= ${date}
         AND NOT EXISTS (
           SELECT 1 FROM collections c 

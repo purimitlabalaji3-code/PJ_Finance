@@ -2,6 +2,7 @@
 // Full PDF and CSV export utilities using jsPDF + jsPDF-AutoTable
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2pdf from 'html2pdf.js';
 
 const today  = () => new Date().toISOString().split('T')[0];
 const fmt    = (n) => `Rs.${Number(n || 0).toLocaleString('en-IN')}`;
@@ -48,74 +49,41 @@ const getImageDataUrl = async (src) => {
   });
 };
 
-// ── PDF Header ─────────────────────────────────────────────────────────────
-const addHeader = async (doc, title, subtitle = '') => {
-  const W = doc.internal.pageSize.getWidth();
+// ── PDF Header Template ──────────────────────────────────────────────────
+const getHtmlHeader = (title, subtitle = '') => `
+  <div class="pdf-header" style="display: flex; align-items: center; border: 2px solid #1e3a8a; padding: 20px; border-radius: 12px; margin-bottom: 25px; background: white; position: relative; height: 90px;">
+    <!-- LEFT: Logo and Text -->
+    <div style="display: flex; align-items: center; gap: 18px; flex: 1;">
+      <img src="/logo.png" style="height: 65px; object-fit: contain;" onerror="this.style.display='none'">
+      <div>
+        <h1 style="margin: 0; font-size: 26px; color: #1e3a8a; font-weight: 900; letter-spacing: 0.5px;">PJ FINANCE</h1>
+        <h2 style="margin: 4px 0 0; font-size: 16px; color: #475569; font-weight: 700; text-transform: uppercase;">${title}</h2>
+      </div>
+    </div>
 
-  // White background for light theme
-  doc.setFillColor(...WHITE);
-  doc.rect(0, 0, W, 35, 'F');
+    <!-- MIDDLE: Centered Image -->
+    <div style="position: absolute; left: 50%; transform: translateX(-50%); text-align: center;">
+      <img src="/download.png" style="height: 75px; object-fit: contain;" onerror="this.style.display='none'">
+    </div>
 
-  // Professional Box Border
-  doc.setDrawColor(220, 220, 220);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(10, 8, W - 20, 24, 2, 2, 'S');
+    <!-- RIGHT: Meta Info -->
+    <div style="text-align: right; flex: 1;">
+      <div style="font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 5px;">Generated: ${new Date().toLocaleString('en-IN')}</div>
+      ${subtitle ? `<div style="font-weight: 900; font-size: 18px; color: #1e3a8a; border-top: 1px solid #e2e8f0; padding-top: 5px; display: inline-block;">${subtitle}</div>` : ''}
+    </div>
+  </div>
+`;
 
-  const [logoImg, centerImg] = await Promise.all([
-    getImageDataUrl('/logo.png'),
-    getImageDataUrl('/download.png')
-  ]);
-
-  let textStartX = 14;
-
-  if (logoImg) {
-    const aspect = logoImg.w / logoImg.h;
-    const h = 18;
-    const w = h * aspect;
-    doc.addImage(logoImg.url, 'PNG', 14, 11, w, h);
-    textStartX = 14 + w + 4;
-  }
-
-  if (centerImg) {
-    const aspect = centerImg.w / centerImg.h;
-    const h = 18;
-    const w = h * aspect;
-    doc.addImage(centerImg.url, 'PNG', (W / 2) - (w / 2), 11, w, h);
-  }
-
-  // Highlighted Brand Name
-  doc.setFontSize(11);
-  doc.setTextColor(...PRIMARY_BLUE);
-  doc.setFont('helvetica', 'bold');
-  doc.text('PJ FINANCE', textStartX, 17);
-
-  // Title
-  doc.setFontSize(14);
-  doc.setTextColor(...DARK);
-  doc.text(title, textStartX, 26);
-
-  // Date on right
-  doc.setFontSize(8);
-  doc.setTextColor(...GRAY);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, W - 14, 17, { align: 'right' });
-
-  if (subtitle) {
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 80);
-    doc.text(subtitle, W - 14, 26, { align: 'right' });
-  }
-};
-
-// ── PDF Footer ─────────────────────────────────────────────────────────────
-const addFooter = (doc) => {
-  const W = doc.internal.pageSize.getWidth();
-  const H = doc.internal.pageSize.getHeight();
-  doc.setFontSize(7);
-  doc.setTextColor(...GRAY);
-  doc.text('PJ Finance — Confidential', 14, H - 6);
-  doc.text(`Page ${doc.getNumberOfPages()}`, W - 14, H - 6, { align: 'right' });
-};
+// Standard Table CSS for all PDFs
+const tableStyles = `
+  table { width: 100%; border-collapse: collapse; font-size: 11px; page-break-inside: auto; }
+  tr { page-break-inside: avoid; page-break-after: auto; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  th { background: #1e3a8a; color: white; padding: 10px; text-align: left; text-transform: uppercase; position: sticky; top: 0; }
+  td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
+  .pdf-page { padding: 20px; background: white; min-height: 100%; box-sizing: border-box; }
+`;
 
 // ── CSV Helper ─────────────────────────────────────────────────────────────
 export const downloadCSV = (filename, headers, rows) => {
@@ -145,28 +113,49 @@ export const exportCustomersCSV = (customers) => {
 };
 
 export const exportCustomersPDF = async (customers) => {
-  const doc = new jsPDF({ orientation: 'landscape' });
-  await addHeader(doc, 'Customer Report', `Total Customers: ${customers.length}`);
+  const container = document.createElement('div');
+  container.innerHTML = `
+    <div class="pdf-page" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+      ${getHtmlHeader('Customer List Report', `Total Customers: ${customers.length}`)}
+      <style>${tableStyles}</style>
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Age/Sex</th>
+            <th>Address</th>
+            <th>Status</th>
+            <th>Join Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${customers.map((c, i) => `
+            <tr style="background: ${i % 2 === 0 ? 'white' : '#f8fafc'}">
+              <td style="font-weight: bold; color: #1e3a8a;">${c.customerCode || '—'}</td>
+              <td>${c.name}</td>
+              <td>${c.phone}</td>
+              <td>${c.age || '—'} / ${c.gender || '—'}</td>
+              <td>${c.address || '—'}</td>
+              <td style="color: ${c.status === 'Active' ? '#10b981' : '#64748b'}; font-weight: bold;">${c.status}</td>
+              <td>${c.joinDate || '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
 
-  autoTable(doc, {
-    startY: 38,
-    head: [['Code', 'Name', 'Phone', 'Age', 'Gender', 'Aadhaar', 'Address', 'Status', 'Join Date']],
-    body: customers.map((c) => [
-      c.customerCode || '—',
-      c.name, c.phone, c.age || '—', c.gender || '—',
-      c.aadhaar || '—', c.address || '—', c.status, c.joinDate || '—'
-    ]),
-    styles:      { fontSize: 8, cellPadding: 3, textColor: 40 },
-    headStyles:  { fillColor: DARK_BLUE, textColor: WHITE, fontStyle: 'bold', fontSize: 8 },
-    alternateRowStyles: { fillColor: [248, 250, 252] }, // Slate-50
-    columnStyles: {
-      0: { cellWidth: 18, fontStyle: 'bold' },
-      7: { fontStyle: 'bold' },
-    },
-    didDrawPage: () => addFooter(doc),
-  });
+  const opt = {
+    margin: [10, 10],
+    filename: `PJ_Customers_${today()}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+  };
 
-  doc.save(`PJ_Customers_${today()}.pdf`);
+  html2pdf().set(opt).from(container).save();
 };
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -184,51 +173,73 @@ export const exportLoansCSV = (loans) => {
 };
 
 export const exportLoansPDF = async (loans) => {
-  const doc = new jsPDF({ orientation: 'landscape' });
   const totalDisbursed = loans.reduce((s, l) => s + Number(l.loanAmount), 0);
   const totalInterest  = loans.reduce((s, l) => {
     const tot = Number(l.totalAmount) || Number(l.loanAmount) * (1 + Number(l.interest) / 100);
     return s + (tot - Number(l.loanAmount));
   }, 0);
 
-  await addHeader(doc, 'Loan Summary Report', `Total Loans: ${loans.length} | Disbursed: ${fmt(totalDisbursed)} | Interest: ${fmt(totalInterest)}`);
+  const container = document.createElement('div');
+  container.innerHTML = `
+    <div class="pdf-page" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+      ${getHtmlHeader('Loan Summary Report', `Total Loans: ${loans.length}`)}
+      <style>${tableStyles}</style>
+      <table>
+        <thead>
+          <tr>
+            <th>Loan ID</th>
+            <th>Cust Code</th>
+            <th>Customer</th>
+            <th>Principal</th>
+            <th>Interest %</th>
+            <th>Interest Amt</th>
+            <th>Total Payable</th>
+            <th>EMI</th>
+            <th>Paid Days</th>
+            <th>Status</th>
+            <th>Start Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${loans.map((l, i) => {
+            const p = Number(l.loanAmount);
+            const tot = Number(l.totalAmount) || p * (1 + Number(l.interest) / 100);
+            return `
+              <tr style="background: ${i % 2 === 0 ? 'white' : '#f8fafc'}">
+                <td style="font-weight: bold; color: #1e3a8a;">${l.loanCode || '—'}</td>
+                <td>${l.customerCode || '—'}</td>
+                <td>${l.customerName}</td>
+                <td style="color: #db2777; font-weight: bold;">${fmt(p)}</td>
+                <td>${l.interest}%</td>
+                <td style="color: #db2777;">${fmt(Math.round(tot - p))}</td>
+                <td style="color: #db2777; font-weight: bold;">${fmt(Math.round(tot))}</td>
+                <td>${fmt(l.dailyAmount)}</td>
+                <td><b>${l.paidDays}</b> / ${l.totalDays}</td>
+                <td style="color: ${l.status === 'Active' ? '#10b981' : '#64748b'}; font-weight: bold;">${l.status}</td>
+                <td>${l.startDate}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+      <div style="margin-top: 20px; background: #1e3a8a; color: white; padding: 15px; border-radius: 8px; display: flex; justify-content: space-around; font-size: 14px;">
+        <div>Total Disbursed: <b>${fmt(totalDisbursed)}</b></div>
+        <div>Total Interest: <b>${fmt(totalInterest)}</b></div>
+        <div>Total Payable: <b>${fmt(totalDisbursed + totalInterest)}</b></div>
+      </div>
+    </div>
+  `;
 
-  autoTable(doc, {
-    startY: 38,
-    head: [['Code', 'Customer', 'Principal', 'Interest %', 'Interest Amt', 'Total Payable', 'Daily EMI', 'Paid Days', 'Total Days', 'Status', 'Start Date']],
-    body: loans.map(l => {
-      const p   = Number(l.loanAmount);
-      const tot = Number(l.totalAmount) || p * (1 + Number(l.interest) / 100);
-      return [l.customerCode || '—', l.customerName, fmt(p), `${l.interest}%`, fmt(Math.round(tot - p)), fmt(Math.round(tot)), fmt(l.dailyAmount), l.paidDays, l.totalDays, l.status, l.startDate];
-    }),
-    styles:     { fontSize: 8, cellPadding: 3 },
-    headStyles: { fillColor: DARK_BLUE, textColor: WHITE, fontStyle: 'bold', fontSize: 8 },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
-    columnStyles: {
-      2: { textColor: [...PINK] },
-      3: { textColor: [...PINK], fontStyle: 'bold' },
-      4: { fontStyle: 'bold' },
-      8: { fontStyle: 'bold' },
-    },
-    didDrawCell: (data) => {
-      if (data.column.index === 9 && data.section === 'body') {
-        const val = data.cell.raw;
-        data.cell.styles.textColor = val === 'Active' ? [...GREEN] : [...GRAY];
-      }
-    },
-    didDrawPage: () => addFooter(doc),
-  });
+  const opt = {
+    margin: 0,
+    filename: `PJ_Loans_${today()}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+  };
 
-  // Totals row at bottom
-  const finalY = (doc.lastAutoTable?.finalY || 100) + 6;
-  doc.setFillColor(...DARK_BLUE);
-  doc.roundedRect(14, finalY, doc.internal.pageSize.getWidth() - 28, 14, 2, 2, 'F');
-  doc.setFontSize(8);
-  doc.setTextColor(...WHITE);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`Total Disbursed: ${fmt(totalDisbursed)}   |   Total Interest: ${fmt(totalInterest)}   |   Total Payable: ${fmt(totalDisbursed + totalInterest)}`, 20, finalY + 9);
-
-  doc.save(`PJ_Loans_${today()}.pdf`);
+  html2pdf().set(opt).from(container).save();
 };
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -241,77 +252,88 @@ export const exportCollectionCSV = (collections) => {
   );
 };
 
-export const exportCollectionPDF = async (collections) => {
-  const doc  = new jsPDF();
+export const exportCollectionPDF = async (collections, loans = []) => {
   const paid = collections.filter(c => c.status === 'Paid');
   const pend = collections.filter(c => c.status === 'Pending');
   const totalPaid    = paid.reduce((s, c) => s + Number(c.paidAmount), 0);
   const totalPending = pend.reduce((s, c) => s + Number(c.dueAmount), 0);
 
-  await addHeader(doc, "Today's Collection Report",
-    `${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`
-  );
+  const container = document.createElement('div');
+  container.innerHTML = `
+    <div class="pdf-page" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+      ${getHtmlHeader('Daily Collection Report', `${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`)}
+      <style>${tableStyles}</style>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+        <div style="padding: 12px; border-radius: 8px; text-align: center; color: white; background: #1e3a8a">
+          <div style="font-size: 10px; opacity: 0.9; text-transform: uppercase;">Total Entries</div>
+          <div style="font-size: 16px; font-weight: bold;">${collections.length}</div>
+        </div>
+        <div style="padding: 12px; border-radius: 8px; text-align: center; color: white; background: #10b981">
+          <div style="font-size: 10px; opacity: 0.9; text-transform: uppercase;">Paid</div>
+          <div style="font-size: 16px; font-weight: bold;">${paid.length}</div>
+        </div>
+        <div style="padding: 12px; border-radius: 8px; text-align: center; color: white; background: #ef4444">
+          <div style="font-size: 10px; opacity: 0.9; text-transform: uppercase;">Pending</div>
+          <div style="font-size: 16px; font-weight: bold;">${pend.length}</div>
+        </div>
+        <div style="padding: 12px; border-radius: 8px; text-align: center; color: white; background: #2563eb">
+          <div style="font-size: 10px; opacity: 0.9; text-transform: uppercase;">Collected</div>
+          <div style="font-size: 16px; font-weight: bold;">${fmt(totalPaid)}</div>
+        </div>
+      </div>
 
-  // Summary boxes
-  const W = doc.internal.pageSize.getWidth();
-  const boxes = [
-    { label: 'Total Entries', value: String(collections.length), color: DARK_BLUE },
-    { label: 'Paid',          value: String(paid.length),        color: GREEN },
-    { label: 'Pending',       value: String(pend.length),        color: RED   },
-    { label: 'Collected',     value: fmt(totalPaid),             color: PRIMARY_BLUE },
-  ];
-  const bw = (W - 28) / 4;
-  boxes.forEach((b, i) => {
-    const x = 14 + i * (bw + 2);
-    doc.setFillColor(...b.color);
-    doc.roundedRect(x, 38, bw, 16, 2, 2, 'F');
-    doc.setFontSize(7); doc.setTextColor(230, 230, 230);
-    doc.text(b.label, x + bw / 2, 43, { align: 'center' });
-    doc.setFontSize(10); doc.setTextColor(...WHITE); doc.setFont('helvetica', 'bold');
-    doc.text(b.value, x + bw / 2, 50, { align: 'center' });
-  });
+      <table>
+        <thead>
+          <tr>
+            <th>Cust Code</th>
+            <th>Customer</th>
+            <th>Due Amount</th>
+            <th>Paid Amount</th>
+            <th>Remaining</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${collections.map((c, i) => {
+            const loan = loans.find(l => l.id === c.loanId);
+            let remaining = 0;
+            if (loan) {
+              remaining = (loan.loanType === '15-Day' || loan.loanType === 'Monthly') 
+                ? Number(loan.totalAmount) 
+                : Number(loan.totalAmount) - Number(loan.totalCollected || 0);
+            }
+            return `
+              <tr style="background: ${i % 2 === 0 ? 'white' : '#f8fafc'}">
+                <td style="font-weight: bold;">${c.customerCode || '—'}</td>
+                <td>${c.customerName || '—'}</td>
+                <td>${fmt(c.dueAmount)}</td>
+                <td style="color: #10b981; font-weight: bold;">${c.status === 'Paid' ? fmt(c.paidAmount) : '—'}</td>
+                <td>${fmt(Math.max(0, remaining))}</td>
+                <td style="font-weight: bold; color: ${c.status === 'Paid' ? '#10b981' : '#ef4444'}">${c.status}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+      
+      ${pend.length > 0 ? `
+        <div style="margin-top: 20px; background: #fef2f2; border: 1px solid #fca5a5; padding: 12px; border-radius: 8px; color: #ef4444; font-size: 13px; font-weight: 500;">
+          ⚠  ${pend.length} pending entries — Total pending: ${fmt(totalPending)}
+        </div>
+      ` : ''}
+    </div>
+  `;
 
-  autoTable(doc, {
-    startY: 60,
-    head: [['Code', 'Customer', 'Due Amt', 'Paid Amt', 'Remaining', 'Status']],
-    body: collections.map(c => {
-      const remaining = Number(c.totalAmount || 0) - (Number(c.paidDays || 0) * Number(c.dailyAmount || 0));
-      return [
-        c.customerCode || '—',
-        c.customerName,
-        fmt(c.dueAmount),
-        c.status === 'Paid' ? fmt(c.paidAmount) : '—',
-        fmt(Math.max(0, remaining)),
-        c.status
-      ];
-    }),
-    styles:     { fontSize: 8, cellPadding: 3 },
-    headStyles: { fillColor: DARK_BLUE, textColor: WHITE, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
-    didDrawCell: (data) => {
-      if (data.column.index === 4 && data.section === 'body') {
-        data.cell.styles.textColor = data.cell.raw === 'Paid' ? [...GREEN] : [...RED];
-        data.cell.styles.fontStyle = 'bold';
-      }
-      if (data.column.index === 3 && data.section === 'body') {
-        data.cell.styles.textColor = [...GREEN];
-        data.cell.styles.fontStyle = 'bold';
-      }
-    },
-    didDrawPage: () => addFooter(doc),
-  });
+  const opt = {
+    margin: 0,
+    filename: `PJ_Collection_${today()}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+  };
 
-  // Pending note
-  if (pend.length > 0) {
-    const fy = (doc.lastAutoTable?.finalY || 100) + 6;
-    doc.setFillColor(254, 242, 242); // red-50
-    doc.setDrawColor(252, 165, 165); // red-300
-    doc.roundedRect(14, fy, W - 28, 10, 2, 2, 'FD');
-    doc.setFontSize(8); doc.setTextColor(...RED);
-    doc.text(`⚠  ${pend.length} pending entries — Total pending: ${fmt(totalPending)}`, 18, fy + 6.5);
-  }
-
-  doc.save(`PJ_Collection_${today()}.pdf`);
+  html2pdf().set(opt).from(container).save();
 };
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -325,178 +347,146 @@ export const exportSummaryCSV = (data) => {
 };
 
 export const exportSummaryPDF = async ({ customers, loans, collections }) => {
-  const doc = new jsPDF();
-  const W   = doc.internal.pageSize.getWidth();
-
   const totalDisbursed = loans.reduce((s, l) => s + Number(l.loanAmount), 0);
   const totalInterest  = loans.reduce((s, l) => {
     const tot = Number(l.totalAmount) || Number(l.loanAmount) * (1 + Number(l.interest) / 100);
     return s + (tot - Number(l.loanAmount));
   }, 0);
   const totalPayable   = totalDisbursed + totalInterest;
-  const collected      = collections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0);
-  const pending        = collections.filter(c => c.status === 'Pending').reduce((s, c) => s + Number(c.dueAmount), 0);
+  const collectedToday = collections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0);
+  const pendingToday   = collections.filter(c => c.status === 'Pending').reduce((s, c) => s + Number(c.dueAmount), 0);
   const activeLoans    = loans.filter(l => l.status === 'Active').length;
-  const completedLoans = loans.filter(l => l.status === 'Completed').length;
 
-  await addHeader(doc, 'Business Summary Report', 'Complete financial overview');
+  const container = document.createElement('div');
+  container.innerHTML = `
+    <div class="pdf-page" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+      ${getHtmlHeader('Business Summary Report')}
+      <style>${tableStyles}</style>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
+        <div style="padding: 12px; border-radius: 8px; text-align: center; color: white; background: #1e3a8a"><div style="font-size: 10px; opacity: 0.9; text-transform: uppercase;">Total Customers</div><div style="font-size: 16px; font-weight: bold;">${customers.length}</div></div>
+        <div style="padding: 12px; border-radius: 8px; text-align: center; color: white; background: #0f766e"><div style="font-size: 10px; opacity: 0.9; text-transform: uppercase;">Active Loans</div><div style="font-size: 16px; font-weight: bold;">${activeLoans}</div></div>
+        <div style="padding: 12px; border-radius: 8px; text-align: center; color: white; background: #b45309"><div style="font-size: 10px; opacity: 0.9; text-transform: uppercase;">Total Disbursed</div><div style="font-size: 16px; font-weight: bold;">${fmt(totalDisbursed)}</div></div>
+        <div style="padding: 12px; border-radius: 8px; text-align: center; color: white; background: #4338ca"><div style="font-size: 10px; opacity: 0.9; text-transform: uppercase;">Total Payable</div><div style="font-size: 16px; font-weight: bold;">${fmt(totalPayable)}</div></div>
+        <div style="padding: 12px; border-radius: 8px; text-align: center; color: white; background: #15803d"><div style="font-size: 10px; opacity: 0.9; text-transform: uppercase;">Today Collected</div><div style="font-size: 16px; font-weight: bold;">${fmt(collectedToday)}</div></div>
+        <div style="padding: 12px; border-radius: 8px; text-align: center; color: white; background: #b91c1c"><div style="font-size: 10px; opacity: 0.9; text-transform: uppercase;">Today Pending</div><div style="font-size: 16px; font-weight: bold;">${fmt(pendingToday)}</div></div>
+      </div>
 
-  // KPI boxes — 2 rows × 4 cols
-  const kpis = [
-    { label: 'Total Customers',  value: String(customers.length),     color: [30, 58, 138] }, // Blue
-    { label: 'Active Loans',     value: String(activeLoans),           color: [15, 118, 110] }, // Teal
-    { label: 'Completed Loans',  value: String(completedLoans),        color: [71, 85, 105] },  // Slate
-    { label: 'Total Disbursed',  value: fmt(totalDisbursed),           color: [180, 83, 9] },   // Amber
-    { label: 'Total Interest',   value: fmt(Math.round(totalInterest)), color: [157, 23, 77] },  // Pink
-    { label: 'Total Payable',    value: fmt(Math.round(totalPayable)), color: [67, 56, 202] },  // Indigo
-    { label: "Today Collected",  value: fmt(collected),                color: [21, 128, 61] },  // Green
-    { label: "Today Pending",    value: fmt(pending),                  color: [185, 28, 28] },  // Red
-  ];
-  const cols  = 4;
-  const bw    = (W - 28) / cols;
-  const bh    = 22;
-  kpis.forEach((k, i) => {
-    const row = Math.floor(i / cols);
-    const col = i % cols;
-    const x   = 14 + col * (bw + 2);
-    const y   = 38 + row * (bh + 3);
-    doc.setFillColor(...k.color);
-    doc.roundedRect(x, y, bw, bh, 2, 2, 'F');
-    doc.setFontSize(7);  doc.setTextColor(230, 230, 230);  doc.setFont('helvetica', 'normal');
-    doc.text(k.label, x + bw / 2, y + 7,  { align: 'center' });
-    doc.setFontSize(10); doc.setTextColor(...WHITE); doc.setFont('helvetica', 'bold');
-    doc.text(k.value, x + bw / 2, y + 17, { align: 'center' });
-  });
+      <h3 style="margin: 20px 0 10px; color: #1e3a8a; font-size: 16px;">Loan Breakdown</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Loan ID</th>
+            <th>Customer</th>
+            <th>Principal</th>
+            <th>Interest Amt</th>
+            <th>Total Payable</th>
+            <th>EMI</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${loans.map((l, i) => {
+            const p = Number(l.loanAmount);
+            const tot = Number(l.totalAmount) || p * (1 + Number(l.interest) / 100);
+            return `
+              <tr style="background: ${i % 2 === 0 ? 'white' : '#f8fafc'}">
+                <td style="font-weight: bold; color: #1e3a8a;">${l.loanCode || '—'}</td>
+                <td>${l.customerName}</td>
+                <td>${fmt(p)}</td>
+                <td>${fmt(Math.round(tot - p))}</td>
+                <td style="font-weight: bold;">${fmt(Math.round(tot))}</td>
+                <td>${fmt(l.dailyAmount)}</td>
+                <td style="color: ${l.status === 'Active' ? '#10b981' : '#64748b'}; font-weight: bold;">${l.status}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
 
-  // Loan details table
-  const tableY = 38 + 2 * (bh + 3) + 8;
-  doc.setFontSize(10); doc.setTextColor(...DARK); doc.setFont('helvetica', 'bold');
-  doc.text('Loan Breakdown', 14, tableY - 2);
+  const opt = {
+    margin: 0,
+    filename: `PJ_Summary_${today()}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+  };
 
-  autoTable(doc, {
-    startY: tableY,
-    head: [['Code', 'Customer', 'Principal', 'Interest Amt', 'Total Payable', 'Daily EMI', 'Status']],
-    body: loans.map(l => {
-      const p   = Number(l.loanAmount);
-      const tot = Number(l.totalAmount) || p * (1 + Number(l.interest) / 100);
-      return [l.customerCode || '—', l.customerName, fmt(p), fmt(Math.round(tot - p)), fmt(Math.round(tot)), fmt(l.dailyAmount), l.status];
-    }),
-    styles:     { fontSize: 8, cellPadding: 3 },
-    headStyles: { fillColor: DARK_BLUE, textColor: WHITE, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
-    didDrawCell: (data) => {
-      if (data.column.index === 6 && data.section === 'body') {
-        data.cell.styles.textColor = data.cell.raw === 'Active' ? [...GREEN] : [...GRAY];
-        data.cell.styles.fontStyle = 'bold';
-      }
-    },
-    didDrawPage: () => addFooter(doc),
-  });
-
-  doc.save(`PJ_BusinessSummary_${today()}.pdf`);
+  html2pdf().set(opt).from(container).save();
 };
 
 // ══════════════════════════════════════════════════════════════════════════
 // 5. SINGLE LOAN STATEMENT — PDF
 // ══════════════════════════════════════════════════════════════════════════
-export const exportSingleLoanPDF = async (loan, collections) => {
-  const doc = new jsPDF();
-  const W   = doc.internal.pageSize.getWidth();
-  
-  const principal = Number(loan.loanAmount || 0);
-  const isTerm = loan.loanType !== 'Daily' && loan.loanType;
-  const totalPayable = isTerm ? principal : Number(loan.totalAmount || (principal + (principal * Number(loan.interest) / 100)));
-  
-  const loanCollections = collections.filter(c => c.loanId === loan.id);
-  const totalCollected = loanCollections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0);
-  const remaining = Math.max(0, totalPayable - totalCollected);
+export const exportLoanStatementPDF = async (loan, loanCollections) => {
+  const totalPayable   = Number(loan.totalAmount);
+  const totalCollected = Number(loan.totalCollected || 0);
+  const remaining      = Math.max(0, totalPayable - totalCollected);
 
-  await addHeader(doc, `Loan Statement — ${loan.customerName}`, `Loan ID: ${loan.id} | Code: ${loan.customerCode || '—'} | Started: ${loan.startDate}`);
+  const container = document.createElement('div');
+  container.innerHTML = `
+    <div class="pdf-page" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+      ${getHtmlHeader('Loan Statement / Ledger', `${loan.loanCode || '—'} | ${loan.customerName}`)}
+      <style>${tableStyles}</style>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px;">
+        <div class="info-box"><div>Loan Type</div><div style="font-weight:bold">${loan.loanType}</div></div>
+        <div class="info-box"><div>Principal</div><div style="font-weight:bold">${fmt(loan.loanAmount)}</div></div>
+        <div class="info-box"><div>Interest Rate</div><div style="font-weight:bold">${loan.interest}%</div></div>
+        <div class="info-box"><div>Total Payable</div><div style="color: #2563eb; font-weight:bold">${fmt(totalPayable)}</div></div>
+        <div class="info-box"><div>Total Collected</div><div style="color: #10b981; font-weight:bold">${fmt(totalCollected)}</div></div>
+        <div class="info-box"><div>Remaining Balance</div><div style="color: #ef4444; font-weight:bold">${fmt(remaining)}</div></div>
+      </div>
 
-  // Summary boxes
-  const boxes = [
-    { label: 'Principal',       value: fmt(principal),      color: DARK_BLUE },
-    ...(!isTerm ? [
-      { label: 'Interest',        value: `${loan.interest}%`, color: DARK_BLUE },
-      { label: 'Total Payable',   value: fmt(Math.round(totalPayable)), color: PRIMARY_BLUE }
-    ] : []),
-    { label: isTerm ? 'Interest Paid' : 'Total Collected', value: fmt(Math.round(totalCollected)), color: GREEN },
-    { label: isTerm ? 'Principal Due' : 'Remaining',       value: fmt(Math.round(remaining)), color: RED },
-  ];
-  
-  const bw = (W - 28) / boxes.length;
-  boxes.forEach((b, i) => {
-    const x = 14 + i * (bw + 2);
-    doc.setFillColor(...b.color);
-    doc.roundedRect(x, 38, bw, 16, 2, 2, 'F');
-    doc.setFontSize(7); doc.setTextColor(230, 230, 230);
-    doc.text(b.label, x + bw / 2, 43, { align: 'center' });
-    doc.setFontSize(10); doc.setTextColor(...WHITE); doc.setFont('helvetica', 'bold');
-    doc.text(b.value, x + bw / 2, 50, { align: 'center' });
-  });
+      <div style="height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; margin-bottom: 20px;">
+        <div style="height: 100%; background: #2563eb; width: ${(totalCollected / totalPayable) * 100}%"></div>
+      </div>
 
-  // Progress Bar
-  doc.setFillColor(241, 245, 249); // slate-100
-  doc.roundedRect(14, 58, W - 28, 6, 3, 3, 'F');
-  
-  const pct = totalPayable > 0 ? Math.min(100, (totalCollected / totalPayable) * 100) : 0;
-  if (pct > 0) {
-    doc.setFillColor(...PRIMARY_BLUE);
-    doc.roundedRect(14, 58, (W - 28) * (pct / 100), 6, 3, 3, 'F');
-  }
-  
-  doc.setFontSize(8);
-  doc.setTextColor(...DARK);
-  doc.text(`Paid: ${fmt(totalCollected)}`, 14, 69);
-  doc.text(`Remaining: ${fmt(remaining)}`, W - 14, 69, { align: 'right' });
+      <h3 style="margin-bottom: 10px; font-size: 16px; color: #1e3a8a">Payment History</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>No.</th>
+            <th>Date</th>
+            <th>Due Amount</th>
+            <th>Paid Amount</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${loanCollections.map((c, i) => {
+            let note = '';
+            if (c.status === 'Paid') {
+              const diff = Number(c.paidAmount) - Number(c.dueAmount);
+              if (diff > 0) note = `<span style="color: #2563eb">+${fmt(diff)} extra</span>`;
+              else if (diff < 0) note = `<span style="color: #ef4444">Short by ${fmt(Math.abs(diff))}</span>`;
+            }
+            return `
+              <tr>
+                <td>${i + 1}</td>
+                <td>${c.date || today()}</td>
+                <td>${fmt(c.dueAmount)}</td>
+                <td style="font-weight: bold; color: #10b981">${c.status === 'Paid' ? fmt(c.paidAmount) : '—'}</td>
+                <td style="font-weight: bold; color: ${c.status === 'Paid' ? '#10b981' : '#ef4444'}">${c.status}</td>
+                <td style="font-size: 9px;">${note}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
 
+  const opt = {
+    margin: 0,
+    filename: `PJ_Statement_${loan.loanCode || loan.id}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+  };
 
-  // Payments Table
-  doc.setFontSize(11); doc.setTextColor(...DARK); doc.setFont('helvetica', 'bold');
-  doc.text('Payment History', 14, 80);
-
-  autoTable(doc, {
-    startY: 84,
-    head: [['Day', 'Date', 'Status', 'Due Amt', 'Paid Amt', 'Note']],
-    body: loanCollections.map((c, i) => {
-      let extraNote = '';
-      if (c.status === 'Paid') {
-        const dAmt = Number(c.dueAmount);
-        const pAmt = Number(c.paidAmount);
-        if (pAmt > dAmt) extraNote = `+${fmt(pAmt - dAmt)} extra`;
-        else if (pAmt < dAmt) extraNote = `Short by ${fmt(dAmt - pAmt)}`;
-      }
-      return [
-        `Day ${i + 1}`,
-        c.date || today(),
-        c.status,
-        fmt(c.dueAmount),
-        c.status === 'Paid' ? fmt(c.paidAmount) : '—',
-        extraNote
-      ];
-    }),
-    styles:     { fontSize: 8, cellPadding: 3 },
-    headStyles: { fillColor: DARK_BLUE, textColor: WHITE, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
-    didDrawCell: (data) => {
-      // Status column
-      if (data.column.index === 2 && data.section === 'body') {
-        data.cell.styles.textColor = data.cell.raw === 'Paid' ? [...GREEN] : [...RED];
-        data.cell.styles.fontStyle = 'bold';
-      }
-      // Paid Amount column
-      if (data.column.index === 4 && data.section === 'body' && data.cell.raw !== '—') {
-        data.cell.styles.textColor = [...GREEN];
-      }
-      // Note column
-      if (data.column.index === 5 && data.section === 'body' && data.cell.raw.includes('extra')) {
-        data.cell.styles.textColor = [...PRIMARY_BLUE];
-      } else if (data.column.index === 5 && data.section === 'body' && data.cell.raw.includes('Short')) {
-        data.cell.styles.textColor = [...RED];
-      }
-    },
-    didDrawPage: () => addFooter(doc),
-  });
-
-  doc.save(`PJ_Statement_${loan.id}.pdf`);
+  html2pdf().set(opt).from(container).save();
 };

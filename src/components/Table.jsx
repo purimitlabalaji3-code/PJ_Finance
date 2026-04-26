@@ -1,7 +1,7 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 
-const Table = ({ columns, data, emptyMessage = 'No data found', loading = false }) => {
+const Table = ({ columns, data, emptyMessage = 'No data found', loading = false, renderSubRow }) => {
   const { theme } = useApp();
   const isDark = theme === 'dark';
 
@@ -38,16 +38,24 @@ const Table = ({ columns, data, emptyMessage = 'No data found', loading = false 
               </tr>
             ) : (
               data.map((row, i) => (
-                <tr
-                  key={row.id ?? i}
-                  className={`table-row-hover transition-colors ${isDark ? 'bg-dark-card' : 'bg-white'}`}
-                >
-                  {columns.map((col, j) => (
-                    <td key={j} className={`px-4 py-3 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      {col.render ? col.render(row, col, i) : row[col.key]}
-                    </td>
-                  ))}
-                </tr>
+                <React.Fragment key={row.id ?? i}>
+                  <tr
+                    className={`table-row-hover transition-colors ${isDark ? 'bg-dark-card' : 'bg-white'}`}
+                  >
+                    {columns.map((col, j) => (
+                      <td key={j} className={`px-4 py-3 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {col.render ? col.render(row, col, i) : row[col.key]}
+                      </td>
+                    ))}
+                  </tr>
+                  {renderSubRow && (
+                    <tr className={isDark ? 'bg-dark-card' : 'bg-white'}>
+                      <td colSpan={columns.length} className="px-4 pb-4 pt-0">
+                        {renderSubRow(row)}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))
             )}
           </tbody>

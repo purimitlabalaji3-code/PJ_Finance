@@ -58,9 +58,32 @@ router.post('/', auth, async (req, res) => {
       dailyAmount = Math.ceil(amt * parseFloat(interest || 0) / 100);
     }
 
+    // 1. Generate Next Loan Code (PJ-D-XXX or PJ-15-XXX)
+    let prefix = 'PJ-D';
+    if (type === '15-Day') prefix = 'PJ-15';
+    if (type === 'Monthly') prefix = 'PJ-M';
+
+    const [lastLoan] = await sql`
+      SELECT loan_code FROM loans 
+      WHERE loan_code LIKE ${prefix + '-%'} 
+      ORDER BY loan_code DESC 
+      LIMIT 1
+    `;
+    
+    let nextId = 1;
+    if (lastLoan?.loan_code) {
+      const parts = lastLoan.loan_code.split('-');
+      // For PJ-D-001, parts[2] is '001'. For PJ-15-001, parts[2] is '001'.
+      const numPart = parts[parts.length - 1];
+      if (!isNaN(numPart)) {
+        nextId = parseInt(numPart, 10) + 1;
+      }
+    }
+    const loanCode = `${prefix}-${String(nextId).padStart(3, '0')}`;
+
     const [row] = await sql`
-      INSERT INTO loans (customer_id, loan_amount, interest, total_amount, daily_amount, start_date, loan_type)
-      VALUES (${customerId}, ${amt}, ${parseFloat(interest || 0)}, ${totalAmount}, ${dailyAmount}, ${startDate || new Date().toISOString().split('T')[0]}, ${type})
+      INSERT INTO loans (customer_id, loan_amount, interest, total_amount, daily_amount, start_date, loan_type, loan_code)
+      VALUES (${customerId}, ${amt}, ${parseFloat(interest || 0)}, ${totalAmount}, ${dailyAmount}, ${startDate || new Date().toISOString().split('T')[0]}, ${type}, ${loanCode})
       RETURNING *
     `;
 

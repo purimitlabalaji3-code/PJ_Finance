@@ -130,6 +130,7 @@ export const apiDeleteLoan     = (id) => request('DELETE', `/api/loans/${id}`);
 
 // ── Collections ───────────────────────────────────────────────────────
 export const apiFetchCollections     = (date) => request('GET', `/api/collections${date ? `?date=${date}` : ''}`);
+export const apiFetchAllCollections  = () => request('GET', '/api/collections/all');
 export const apiGenerateCollections  = (date) => request('POST', `/api/collections/generate${date ? `?date=${date}` : ''}`);
 export const apiAddManualCollection  = (data) => request('POST', '/api/collections/manual', data);
 export const apiMarkPaid             = (id, amount) => request('PATCH', `/api/collections/${id}/pay`, { amount });

@@ -95,14 +95,30 @@ const Dashboard = () => {
   }, 0);
   const totalCollectedAllTime = loans.reduce((s, l) => s + (l.totalCollected || 0), 0);
 
+  const totalPaidInterest = loans.reduce((s, l) => {
+    if (l.loanType === '15-Day' || l.loanType === 'Monthly') {
+      return s + Number(l.totalCollected || 0);
+    } else {
+      const tot = Number(l.totalAmount);
+      const p = Number(l.loanAmount);
+      const intPortion = tot > p ? (tot - p) / tot : 0;
+      return s + (Number(l.totalCollected || 0) * intPortion);
+    }
+  }, 0);
+
   const todayInterestCollected = collections
     .filter(c => c.status === 'Paid')
     .reduce((s, c) => {
       const loan = loans.find(l => l.id === c.loanId);
-      if (!loan || !loan.interest) return s;
-      const intRate = Number(loan.interest);
-      const interestPerDay = Number(loan.dailyAmount) * (intRate / (100 + intRate));
-      return s + interestPerDay;
+      if (!loan) return s;
+      if (loan.loanType === '15-Day' || loan.loanType === 'Monthly') {
+        return s + Number(c.paidAmount);
+      } else {
+        const tot = Number(loan.totalAmount);
+        const p = Number(loan.loanAmount);
+        const intPortion = tot > p ? (tot - p) / tot : 0;
+        return s + (Number(c.paidAmount) * intPortion);
+      }
     }, 0);
 
   const dailyLoans = loans.filter(l => l.loanType === 'Daily').length;
@@ -127,8 +143,15 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Group 1: Collection Distribution (New) */}
+      {/* Group 1: Customers & Loan Types */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard
+          title="Total Customers"
+          value={customers.length}
+          icon={Users}
+          color={isDark ? 'bg-cyan-500/10 text-cyan-400' : 'bg-cyan-50 text-cyan-600'}
+          onClick={() => navigate('/customers')}
+        />
         <StatCard
           title="Daily Loans"
           value={dailyLoans}
@@ -156,26 +179,10 @@ const Dashboard = () => {
           color={isDark ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-50 text-purple-600'}
           onClick={() => navigate('/loans?type=Monthly')}
         />
-        <StatCard
-          title="Total Active"
-          value={dailyLoans + fortnightlyLoans + monthlyLoans}
-          icon={BarChart3}
-          change="All Types"
-          changeType="up"
-          color={isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}
-          onClick={() => navigate('/loans')}
-        />
       </div>
 
-      {/* Group 2: Portfolio Overview (Restored + Existing) */}
+      {/* Group 2: Financial Overview (All-Time) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard
-          title="Total Customers"
-          value={customers.length}
-          icon={Users}
-          color={isDark ? 'bg-cyan-500/10 text-cyan-400' : 'bg-cyan-50 text-cyan-600'}
-          onClick={() => navigate('/customers')}
-        />
         <StatCard
           title="Total Disbursed"
           value={totalDisbursed}
@@ -184,18 +191,25 @@ const Dashboard = () => {
           color={isDark ? 'bg-gray-500/10 text-gray-400' : 'bg-gray-50 text-gray-600'}
         />
         <StatCard
-          title="Total Interest"
-          value={Math.round(totalInterest)}
-          icon={Percent}
-          prefix="₹"
-          color={isDark ? 'bg-pink-500/10 text-pink-400' : 'bg-pink-50 text-pink-600'}
-        />
-        <StatCard
           title="Total Collected"
           value={Math.round(totalCollectedAllTime)}
           icon={TrendingUp}
           prefix="₹"
           color={isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}
+        />
+        <StatCard
+          title="Expected Interest"
+          value={Math.round(totalInterest)}
+          icon={Percent}
+          prefix="₹"
+          color={isDark ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-50 text-purple-600'}
+        />
+        <StatCard
+          title="Paid Interest"
+          value={Math.round(totalPaidInterest)}
+          icon={IndianRupee}
+          prefix="₹"
+          color={isDark ? 'bg-pink-500/10 text-pink-400' : 'bg-pink-50 text-pink-600'}
         />
       </div>
 
@@ -218,19 +232,18 @@ const Dashboard = () => {
           color={isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-yellow-50 text-yellow-600'}
         />
         <StatCard
+          title="Today's Interest"
+          value={Math.round(todayInterestCollected)}
+          icon={Activity}
+          prefix="₹"
+          color={isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}
+        />
+        <StatCard
           title="Today Pending"
           value={stats.pendingAmount}
           icon={AlertCircle}
           prefix="₹"
           color={isDark ? 'bg-red-500/10 text-accent-red' : 'bg-red-50 text-red-500'}
-        />
-        <StatCard
-          title="Efficiency"
-          value={Math.round((todayPaid / (todayTotal || 1)) * 100) + '%'}
-          icon={Activity}
-          change="Collection rate"
-          changeType="up"
-          color={isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-green-50 text-green-600'}
         />
       </div>
 

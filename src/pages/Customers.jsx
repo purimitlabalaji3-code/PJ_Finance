@@ -23,11 +23,17 @@ const Customers = () => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [viewTarget, setViewTarget] = useState(null);
 
-  const filtered = customers.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.phone.includes(search) ||
-    c.customerCode?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = customers
+    .filter(c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.phone.includes(search) ||
+      c.customerCode?.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      const codeA = a.customerCode || '';
+      const codeB = b.customerCode || '';
+      return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
+    });
 
   const handleDelete = async () => {
     try {

@@ -10,7 +10,7 @@ import {
   apiLogin, apiGoogleLogin, apiFetchMe, apiLogout,
   apiFetchCustomers, apiAddCustomer, apiUpdateCustomer, apiDeleteCustomer,
   apiFetchLoans, apiAddLoan, apiDeleteLoan,
-  apiFetchCollections, apiGenerateCollections, apiAddManualCollection, apiMarkPaid, apiMarkUnpaid,
+  apiFetchCollections, apiFetchAllCollections, apiGenerateCollections, apiAddManualCollection, apiMarkPaid, apiMarkUnpaid,
   apiFetchCollectionSummary,
 } from '@/utils/api';
 
@@ -25,8 +25,13 @@ export const useApp = () => {
 };
 
 // ── Normalizers defined at module scope so they're always available ──────────
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+};
 const normalLoan = (l) => ({
   id:           l.id,
+  loanCode:     l.loan_code,
   customerId:   l.customer_id,
   customerCode: l.customer_code,
   customerName: l.customer_name,
@@ -34,7 +39,7 @@ const normalLoan = (l) => ({
   interest:     Number(l.interest),
   totalAmount:  Number(l.total_amount),
   dailyAmount:  Number(l.daily_amount),
-  startDate:    l.start_date ? String(l.start_date).split('T')[0] : '',
+  startDate:    formatDate(l.start_date),
   status:       l.status,
   paidDays:     l.paid_days,
   totalDays:    l.total_days,
@@ -54,7 +59,7 @@ const normalCollection = (c) => ({
   totalAmount:  Number(c.total_amount),
   paidDays:     Number(c.paid_days),
   dailyAmount:  Number(c.daily_amount),
-  date:         c.date ? String(c.date).split('T')[0] : '',
+  date:         formatDate(c.date),
   status:       c.status,
 });
 
@@ -69,7 +74,7 @@ const normalCustomer = (c) => ({
   address:      c.address,
   status:       c.status,
   image:        c.image,
-  joinDate:     c.join_date ? String(c.join_date).split('T')[0] : '',
+  joinDate:     formatDate(c.join_date),
 });
 
 export const AppProvider = ({ children }) => {
@@ -80,6 +85,7 @@ export const AppProvider = ({ children }) => {
   const [customers, setCustomers] = useState([]);
   const [loans, setLoans] = useState([]);
   const [collections, setCollections] = useState([]);
+  const [allCollections, setAllCollections] = useState([]);
   const [collectionSummary, setCollectionSummary] = useState([]);
   // Use local date (not UTC) so IST users see the correct day
   const [collectionDate, setCollectionDate] = useState(() => new Date().toLocaleDateString('en-CA'));
@@ -149,15 +155,17 @@ export const AppProvider = ({ children }) => {
       // Auto-generate collections for the current selected date
       await apiGenerateCollections(collectionDate).catch(() => {});
 
-      const [c, l, col, summary] = await Promise.all([
+      const [c, l, colToday, colHistory, summary] = await Promise.all([
         apiFetchCustomers(),
         apiFetchLoans(),
         apiFetchCollections(collectionDate),
+        apiFetchAllCollections(),
         apiFetchCollectionSummary().catch(() => []),
       ]);
       setCustomers(Array.isArray(c) ? c.map(normalCustomer) : []);
       setLoans(Array.isArray(l) ? l.map(normalLoan) : []);
-      setCollections(Array.isArray(col) ? col.map(normalCollection) : []);
+      setCollections(Array.isArray(colToday) ? colToday.map(normalCollection) : []);
+      setAllCollections(Array.isArray(colHistory) ? colHistory.map(normalCollection) : []);
       setCollectionSummary(Array.isArray(summary) ? summary : []);
     } catch (err) {
       console.error('Load error:', err);
@@ -245,6 +253,7 @@ export const AppProvider = ({ children }) => {
     const row = await apiMarkPaid(id, amount);
     const nc = normalCollection(row);
     setCollections(prev => prev.map(c => c.id === id ? nc : c));
+    setAllCollections(prev => prev.map(c => c.id === id ? nc : c));
     setLoans(prev => prev.map(l =>
       l.id === nc.loanId ? { ...l, paidDays: l.paidDays + 1 } : l
     ));
@@ -259,6 +268,7 @@ export const AppProvider = ({ children }) => {
     const row = await apiMarkUnpaid(id);
     const nc = normalCollection(row);
     setCollections(prev => prev.map(c => c.id === id ? nc : c));
+    setAllCollections(prev => prev.map(c => c.id === id ? nc : c));
     setLoans(prev => prev.map(l =>
       l.id === nc.loanId ? { ...l, paidDays: Math.max(l.paidDays - 1, 0) } : l
     ));
@@ -279,7 +289,7 @@ export const AppProvider = ({ children }) => {
       theme, toggleTheme,
       customers, addCustomer, updateCustomer, deleteCustomer,
       loans, addLoan, deleteLoan,
-      collections, setCollections, markCollectionPaid, markCollectionPending,
+      collections, setCollections, allCollections, setAllCollections, markCollectionPaid, markCollectionPending,
       generateCollections, addManualCollection, collectionDate, changeCollectionDate,
       collectionSummary,
       loading, loadAll,

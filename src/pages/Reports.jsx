@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import Card from '../components/Card';
 import {
@@ -14,6 +14,7 @@ import {
   exportSummaryCSV,   exportSummaryPDF,
   dateRanges,
 } from '../utils/exports';
+import { apiFetchAllCollections } from '../utils/api';
 
 // ── Single report row with CSV + PDF ─────────────────────────────────────
 const ReportRow = ({ label, icon: Icon, variant, onCSV, onPDF, isDark }) => {
@@ -76,17 +77,32 @@ const SectionCard = ({ title, description, icon: Icon, isDark, children }) => (
 );
 
 const Reports = () => {
-  const { theme, customers, loans, collections, loadAll } = useApp();
+  const { theme, customers, loans, collections: todayCollections, loadAll } = useApp();
   const isDark = theme === 'dark';
+  const [allCollections, setAllCollections] = useState([]);
 
   // ── Auto-refresh: poll every 30s + refresh when tab becomes visible ──
   useEffect(() => {
     loadAll(); // fresh load on mount
 
-    const interval = setInterval(loadAll, 30000); // every 30 seconds
+    const fetchAll = async () => {
+      try {
+        const data = await apiFetchAllCollections();
+        // Normalize
+        setAllCollections(data.map(c => ({
+          ...c,
+          id: c.id, loanId: c.loan_id, customerId: c.customer_id, customerCode: c.customer_code,
+          customerName: c.customer_name, dueAmount: Number(c.due_amount), paidAmount: Number(c.paid_amount),
+          totalAmount: Number(c.total_amount), paidDays: Number(c.paid_days), dailyAmount: Number(c.daily_amount),
+          date: c.date ? String(c.date).split('T')[0] : '', status: c.status,
+        })));
+      } catch (err) { console.error('Failed to fetch all collections'); }
+    };
+    fetchAll();
+    const interval = setInterval(() => { loadAll(); fetchAll(); }, 30000); // every 30 seconds
 
     const onVisible = () => {
-      if (document.visibilityState === 'visible') loadAll();
+      if (document.visibilityState === 'visible') { loadAll(); fetchAll(); }
     };
     document.addEventListener('visibilitychange', onVisible);
 
@@ -97,8 +113,8 @@ const Reports = () => {
   }, []);
 
   // ── Live stats ─────────────────────────────────────────────────────────
-  const totalCollected = collections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0);
-  const totalPending   = collections.filter(c => c.status === 'Pending').reduce((s, c) => s + Number(c.dueAmount), 0);
+  const totalCollected = todayCollections.filter(c => c.status === 'Paid').reduce((s, c) => s + Number(c.paidAmount), 0);
+  const totalPending   = todayCollections.filter(c => c.status === 'Pending').reduce((s, c) => s + Number(c.dueAmount), 0);
   const totalDisbursed = loans.reduce((s, l) => s + Number(l.loanAmount), 0);
   const totalInterest  = loans.reduce((s, l) => {
     const tot = Number(l.totalAmount) || Number(l.loanAmount) * (1 + Number(l.interest) / 100);
@@ -106,12 +122,12 @@ const Reports = () => {
   }, 0);
   const totalPayable   = totalDisbursed + totalInterest;
   const activeLoans    = loans.filter(l => l.status === 'Active').length;
-  const paidToday      = collections.filter(c => c.status === 'Paid').length;
+  const paidToday      = todayCollections.filter(c => c.status === 'Paid').length;
 
   // ── Date-filtered collections helper ───────────────────────────────────
   const filterByRange = (range) => {
     const { from, to } = dateRanges[range]();
-    return collections.filter(c => {
+    return allCollections.filter(c => {
       const d = (c.date || '').split('T')[0];
       return d >= from && d <= to;
     });
@@ -150,7 +166,7 @@ const Reports = () => {
           { label: 'Total Payable',   value: `₹${Math.round(totalPayable).toLocaleString('en-IN')}`,    icon: TrendingUp,   color: isDark ? 'text-emerald-400' : 'text-green-600'   },
           { label: 'Collected Today', value: `₹${totalCollected.toLocaleString('en-IN')}`,              icon: CheckCircle2, color: isDark ? 'text-emerald-400' : 'text-green-600'   },
           { label: 'Pending Today',   value: `₹${totalPending.toLocaleString('en-IN')}`,                icon: FileText,     color: isDark ? 'text-accent-red'  : 'text-red-500'     },
-          { label: 'Paid Today',      value: `${paidToday} / ${collections.length}`,                    icon: Calendar,     color: isDark ? 'text-cyan-400'    : 'text-cyan-600'    },
+          { label: 'Paid Today',      value: `${paidToday} / ${todayCollections.length}`,                    icon: Calendar,     color: isDark ? 'text-cyan-400'    : 'text-cyan-600'    },
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="flex items-center gap-3">
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-dark-muted' : 'bg-gray-50'}`}>
@@ -182,8 +198,16 @@ const Reports = () => {
             onPDF={() => run(() => exportCustomersPDF(customers), 'Monthly Customer PDF')}
           />
           <ReportRow label="100-Days Customer PDF"    icon={FileBarChart}  variant="purple" isDark={isDark}
-            onCSV={() => run(() => exportLoansCSV(loans), '100-Day Loan CSV')}
-            onPDF={() => run(() => exportLoansPDF(loans), '100-Day Loan PDF')}
+            onCSV={() => run(() => exportLoansCSV(loans.filter(l => l.loanType === 'Daily' || !l.loanType)), '100-Day Loan CSV')}
+            onPDF={() => run(() => exportLoansPDF(loans.filter(l => l.loanType === 'Daily' || !l.loanType)), '100-Day Loan PDF')}
+          />
+          <ReportRow label="15-Day Loans PDF"         icon={Calendar}     variant="primary" isDark={isDark}
+            onCSV={() => run(() => exportLoansCSV(loans.filter(l => l.loanType === '15-Day')), '15-Day Loans CSV')}
+            onPDF={() => run(() => exportLoansPDF(loans.filter(l => l.loanType === '15-Day')), '15-Day Loans PDF')}
+          />
+          <ReportRow label="Monthly Loans PDF"        icon={FileBarChart}  variant="purple" isDark={isDark}
+            onCSV={() => run(() => exportLoansCSV(loans.filter(l => l.loanType === 'Monthly')), 'Monthly Loans CSV')}
+            onPDF={() => run(() => exportLoansPDF(loans.filter(l => l.loanType === 'Monthly')), 'Monthly Loans PDF')}
           />
         </SectionCard>
 
@@ -191,24 +215,32 @@ const Reports = () => {
         <SectionCard title="Overall Reports" description="Business-wide collection summaries" icon={BarChart2} isDark={isDark}>
           <ReportRow label="Daily Overall Report"     icon={FileText}     variant="primary" isDark={isDark}
             onCSV={() => run(() => exportCollectionCSV(filterByRange('daily')), 'Daily Collection CSV')}
-            onPDF={() => run(() => exportCollectionPDF(filterByRange('daily')), 'Daily Collection PDF')}
+            onPDF={() => run(() => exportCollectionPDF(filterByRange('daily'), loans), 'Daily Collection PDF')}
           />
           <ReportRow label="Weekly Overall Report"    icon={Calendar}     variant="success" isDark={isDark}
             onCSV={() => run(() => exportCollectionCSV(filterByRange('weekly')), 'Weekly Collection CSV')}
-            onPDF={() => run(() => exportCollectionPDF(filterByRange('weekly')), 'Weekly Collection PDF')}
+            onPDF={() => run(() => exportCollectionPDF(filterByRange('weekly'), loans), 'Weekly Collection PDF')}
           />
           <ReportRow label="Monthly Overall Report"   icon={BarChart2}    variant="warning" isDark={isDark}
             onCSV={() => run(() => exportCollectionCSV(filterByRange('monthly')), 'Monthly Collection CSV')}
-            onPDF={() => run(() => exportCollectionPDF(filterByRange('monthly')), 'Monthly Collection PDF')}
+            onPDF={() => run(() => exportCollectionPDF(filterByRange('monthly'), loans), 'Monthly Collection PDF')}
+          />
+          <ReportRow label="15-Day Collections PDF"   icon={Calendar}     variant="primary" isDark={isDark}
+            onCSV={() => run(() => exportCollectionCSV(allCollections.filter(c => loans.find(l=>l.id===c.loanId)?.loanType === '15-Day')), '15-Day Collection CSV')}
+            onPDF={() => run(() => exportCollectionPDF(allCollections.filter(c => loans.find(l=>l.id===c.loanId)?.loanType === '15-Day'), loans), '15-Day Collection PDF')}
+          />
+          <ReportRow label="Monthly Collections PDF"  icon={FileBarChart} variant="purple" isDark={isDark}
+            onCSV={() => run(() => exportCollectionCSV(allCollections.filter(c => loans.find(l=>l.id===c.loanId)?.loanType === 'Monthly')), 'Monthly Collection CSV')}
+            onPDF={() => run(() => exportCollectionPDF(allCollections.filter(c => loans.find(l=>l.id===c.loanId)?.loanType === 'Monthly'), loans), 'Monthly Collection PDF')}
           />
           <ReportRow label="Business Summary PDF"     icon={FileBarChart}  variant="purple" isDark={isDark}
             onCSV={() => run(() => exportSummaryCSV({
               'Total Customers': customers.length, 'Active Loans': activeLoans,
               'Total Disbursed': `Rs.${totalDisbursed}`, 'Total Interest': `Rs.${Math.round(totalInterest)}`,
               'Total Payable': `Rs.${Math.round(totalPayable)}`, 'Collected Today': `Rs.${totalCollected}`,
-              'Pending Today': `Rs.${totalPending}`, 'Paid Today': `${paidToday}/${collections.length}`,
+              'Pending Today': `Rs.${totalPending}`, 'Paid Today': `${paidToday}/${todayCollections.length}`,
             }), 'Summary CSV')}
-            onPDF={() => run(() => exportSummaryPDF({ customers, loans, collections }), 'Business Summary PDF')}
+            onPDF={() => run(() => exportSummaryPDF({ customers, loans, collections: todayCollections }), 'Business Summary PDF')}
           />
         </SectionCard>
       </div>

@@ -5,16 +5,122 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import Table from '../components/Table';
 import Modal from '../components/Modal';
-import { Plus, Trash2, TrendingUp, Calendar, IndianRupee, Eye, Percent, Clock, Zap, CalendarDays } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, Calendar, IndianRupee, Eye, Percent, Clock, Zap, CalendarDays, Check, X, Minus, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const PaymentCalendarBar = ({ loan, allCollections, isDark }) => {
+  if (loan.loanType !== 'Daily') return null;
+
+  const totalDays = 100;
+  const dots = [];
+  let currentDate = new Date(loan.startDate);
+  let daysAdded = 0;
+  
+  // Find all collections for this specific loan from the full history
+  const loanCollections = allCollections.filter(c => c.loanId === loan.id);
+
+  while (daysAdded < totalDays) {
+    const isSunday = currentDate.getDay() === 0;
+    // Normalize currentDate to YYYY-MM-DD in IST
+    const dateStr = currentDate.toLocaleDateString('en-CA'); 
+    
+    // Normalize collection dates to YYYY-MM-DD in IST for matching
+    const collection = loanCollections.find(c => {
+       if (!c.date) return false;
+       const cDate = new Date(c.date).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+       return cDate === dateStr;
+    });
+    
+    let status = 'future'; // default
+    if (isSunday) {
+      status = 'sunday';
+    } else if (collection) {
+      status = (String(collection.status).toLowerCase() === 'paid') ? 'paid' : 'missed';
+    } else if (new Date(dateStr) < new Date(new Date().toISOString().split('T')[0])) {
+       // Past day but no collection record found (missed)
+       status = 'missed';
+    }
+
+    dots.push({ 
+      date: dateStr, 
+      status, 
+      label: currentDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+      dayMonth: `${currentDate.getDate().toString().padStart(2, '0')}/${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`
+    });
+    
+    if (!isSunday) daysAdded++;
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  // Group dots by Month
+  const months = [];
+  dots.forEach(dot => {
+    const d = new Date(dot.date);
+    const monthYear = d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    let monthGroup = months.find(m => m.name === monthYear);
+    if (!monthGroup) {
+      monthGroup = { name: monthYear, dots: [] };
+      months.push(monthGroup);
+    }
+    monthGroup.dots.push(dot);
+  });
+
+  return (
+    <div className="mt-2 space-y-4">
+      {months.map((month, mIdx) => (
+        <div key={mIdx} className={`p-3 rounded-xl border ${isDark ? 'bg-dark-bg/50 border-dark-border/50' : 'bg-gray-50 border-gray-100'}`}>
+          <div className="flex items-center gap-2 mb-3">
+            <Calendar className={`w-3.5 h-3.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              {month.name}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {month.dots.map((dot, i) => (
+              <div key={i} className="group relative flex flex-col items-center space-y-1">
+                {/* Date Label Above Dot */}
+                <span className={`text-[10px] font-bold ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  {dot.dayMonth}
+                </span>
+
+                <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] transition-all duration-200 ${
+                  dot.status === 'paid' ? 'bg-emerald-500 text-white shadow-sm' :
+                  dot.status === 'missed' ? 'bg-red-500/20 text-red-500 border border-red-500/30' :
+                  dot.status === 'sunday' ? 'bg-gray-500/10 text-gray-500' :
+                  isDark ? 'bg-dark-muted text-gray-700' : 'bg-gray-100 text-gray-300'
+                }`}>
+                  {dot.status === 'paid' && <Check className="w-3.5 h-3.5 stroke-[4px]" />}
+                  {dot.status === 'missed' && <X className="w-3.5 h-3.5 stroke-[4px]" />}
+                  {dot.status === 'sunday' && <Minus className="w-3.5 h-3.5 opacity-30" />}
+                </div>
+                
+                {/* Tooltip */}
+                <div className={`absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 px-2 py-1 rounded text-[9px] font-bold whitespace-nowrap shadow-xl border ${
+                  isDark ? 'bg-dark-bg border-dark-border text-white' : 'bg-white border-light-border text-gray-900'
+                }`}>
+                  {dot.label} {dot.status === 'sunday' ? '(Sunday)' : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const Loans = () => {
-  const { loans, deleteLoan, customers, theme } = useApp();
+  const { loans, allCollections, deleteLoan, customers, theme } = useApp();
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('type') || 'Daily';
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [expandedLoans, setExpandedLoans] = useState({}); // { loanId: boolean }
+
+  const toggleExpand = (id) => {
+    setExpandedLoans(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const tabs = [
     { id: 'Daily', label: 'Daily Collection', icon: Zap, color: 'text-yellow-400', bg: 'bg-yellow-400/10' },
@@ -23,7 +129,14 @@ const Loans = () => {
   ];
 
   const filteredLoans = useMemo(() => {
-    return loans.filter(l => l.loanType === activeTab);
+    return loans
+      .filter(l => l.loanType === activeTab)
+      .sort((a, b) => {
+        const codeA = a.loanCode || '';
+        const codeB = b.loanCode || '';
+        // Smart numeric sort: PJ-D-001 < PJ-D-010
+        return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
+      });
   }, [loans, activeTab]);
 
   const handleDelete = async () => {
@@ -39,6 +152,14 @@ const Loans = () => {
 
   const columns = [
     {
+      header: 'ID', key: 'loanCode',
+      render: (row) => (
+        <span className={`font-bold text-xs ${isDark ? 'text-yellow-400' : 'text-primary-blue'}`}>
+          {row.loanCode || '—'}
+        </span>
+      )
+    },
+    {
       header: 'Customer', key: 'customerName',
       render: (row) => {
         const cust = customers.find(c => c.id === row.customerId);
@@ -51,7 +172,7 @@ const Loans = () => {
               </div>
             }
             <div className="flex flex-col">
-              <span className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{row.customerName}</span>
+              <span className={`font-semibold text-sm truncate max-w-[120px] ${isDark ? 'text-white' : 'text-gray-900'}`}>{row.customerName}</span>
               <span className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{cust?.customerCode || '—'}</span>
             </div>
           </div>
@@ -161,6 +282,17 @@ const Loans = () => {
       header: 'Actions', key: 'actions',
       render: row => (
         <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => toggleExpand(row.id)}
+            className={`p-1.5 rounded-lg transition-colors ${
+              expandedLoans[row.id]
+                ? isDark ? 'bg-primary-blue/20 text-primary-blue' : 'bg-blue-100 text-primary-blue'
+                : isDark ? 'text-gray-400 hover:text-primary-blue hover:bg-primary-blue/10' : 'text-gray-500 hover:text-primary-blue hover:bg-blue-50'
+            }`}
+            title={expandedLoans[row.id] ? "Collapse History" : "View Payment History"}
+          >
+            {expandedLoans[row.id] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
           <button
             onClick={() => navigate(`/loans/${row.id}`)}
             className={`p-1.5 rounded-lg transition-colors ${isDark ? 'text-gray-400 hover:text-blue-400 hover:bg-blue-400/10' : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'}`}
@@ -278,6 +410,9 @@ const Loans = () => {
           columns={columns} 
           data={filteredLoans} 
           emptyMessage={`No ${activeTab} loans found. Add one to get started!`} 
+          renderSubRow={(row) => (
+            expandedLoans[row.id] && <PaymentCalendarBar loan={row} allCollections={allCollections} isDark={isDark} />
+          )}
         />
       </Card>
 

@@ -164,27 +164,87 @@ const Collection = () => {
 
   return (
     <div className="space-y-5">
+      {(() => {
+        const d = new Date(collectionDate);
+        const isSunday = d.getDay() === 0;
+        if (isSunday) {
+          return (
+            <Card className={`py-16 text-center space-y-6 overflow-hidden relative border-2 ${isDark ? 'border-yellow-400/20 bg-yellow-400/5' : 'border-blue-200 bg-blue-50/50'}`}>
+              <div className="absolute -top-10 -left-10 w-40 h-40 bg-yellow-400/10 rounded-full blur-3xl" />
+              <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-primary-blue/10 rounded-full blur-3xl" />
+              
+              <div className={`w-20 h-20 mx-auto rounded-3xl flex items-center justify-center shadow-2xl ${isDark ? 'bg-yellow-400/10 text-yellow-400' : 'bg-white text-primary-blue'}`}>
+                <CalendarDays className="w-10 h-10" />
+              </div>
+              
+              <div className="space-y-3 relative z-10">
+                <h2 className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  Happy Sunday! ☀️
+                </h2>
+                <div className={`mx-auto w-16 h-1 rounded-full ${isDark ? 'bg-yellow-400/30' : 'bg-primary-blue/30'}`} />
+                <p className={`text-lg font-medium italic px-6 max-w-md mx-auto leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                  "Today is Sunday, so there is no collection. Please enjoy your day, take some rest, and recharge for the week ahead!"
+                </p>
+              </div>
+
+              <div className="flex justify-center gap-4 pt-4">
+                <span className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest ${isDark ? 'bg-dark-muted text-yellow-400' : 'bg-white text-primary-blue shadow-sm'}`}>
+                  Holiday
+                </span>
+                <span className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest ${isDark ? 'bg-dark-muted text-emerald-400' : 'bg-white text-green-600 shadow-sm'}`}>
+                  Family Time
+                </span>
+              </div>
+            </Card>
+          );
+        }
+        return null;
+      })()}
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Collections</h2>
-          <div className="flex items-center gap-2 mt-1">
-            <input 
-              type="date" 
-              value={collectionDate}
-              onChange={(e) => changeCollectionDate(e.target.value)}
-              className={`px-3 py-1.5 text-sm font-semibold rounded-lg border outline-none cursor-pointer transition-colors ${
-                isDark 
-                  ? 'bg-dark-muted border-dark-border text-yellow-400 hover:border-yellow-400/50 focus:border-yellow-400' 
-                  : 'bg-white border-light-border text-primary-blue hover:border-blue-400 focus:border-primary-blue'
-              }`}
-            />
-            <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{displayDate}</span>
+      {new Date(collectionDate).getDay() !== 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Collections</h2>
+            <div className="flex items-center gap-2 mt-1">
+              <input 
+                type="date" 
+                value={collectionDate}
+                onChange={(e) => changeCollectionDate(e.target.value)}
+                className={`px-3 py-1.5 text-sm font-semibold rounded-lg border outline-none cursor-pointer transition-colors ${
+                  isDark 
+                    ? 'bg-dark-muted border-dark-border text-yellow-400 hover:border-yellow-400/50 focus:border-yellow-400' 
+                    : 'bg-white border-light-border text-primary-blue hover:border-blue-400 focus:border-primary-blue'
+                }`}
+              />
+              <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{displayDate}</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Tabs */}
+      {/* Date Picker ALWAYS visible if it IS Sunday so you can navigate away */}
+      {new Date(collectionDate).getDay() === 0 && (
+        <div className="flex justify-center">
+           <div className={`p-4 rounded-2xl border flex items-center gap-3 ${isDark ? 'bg-dark-muted border-dark-border' : 'bg-white border-light-border shadow-sm'}`}>
+              <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Check another date:</span>
+              <input 
+                type="date" 
+                value={collectionDate}
+                onChange={(e) => changeCollectionDate(e.target.value)}
+                className={`px-3 py-1.5 text-sm font-semibold rounded-lg border outline-none cursor-pointer transition-colors ${
+                  isDark 
+                    ? 'bg-dark-bg border-dark-border text-yellow-400 hover:border-yellow-400/50 focus:border-yellow-400' 
+                    : 'bg-gray-50 border-light-border text-primary-blue hover:border-blue-400 focus:border-primary-blue'
+                }`}
+              />
+           </div>
+        </div>
+      )}
+
+      {new Date(collectionDate).getDay() !== 0 && (
+        <>
+          {/* Tabs */}
       <div className={`p-1 rounded-2xl flex gap-1 ${isDark ? 'bg-dark-muted' : 'bg-gray-100'}`}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -276,7 +336,9 @@ const Collection = () => {
               <CollectionRow key={entry.id} entry={entry} isDark={isDark} />
             ))
         )}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
