@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 import Card from '../components/Card';
 import { ArrowLeft, CheckCircle2, AlertCircle, Download, Clock } from 'lucide-react';
 import { apiFetchLoanCollections } from '../utils/api';
-import { exportSingleLoanPDF } from '../utils/exports';
+import { exportLoanStatementPDF } from '../utils/exports';
 import toast from 'react-hot-toast';
 
 const LoanDetail = () => {
@@ -105,7 +105,7 @@ const LoanDetail = () => {
         <button
           onClick={async () => {
             try {
-              await exportSingleLoanPDF(loan, collections);
+              await exportLoanStatementPDF(loan, collections);
               toast.success(`Statement for ${loan.customerName} downloaded ✅`);
             } catch (err) {
               console.error(err);
