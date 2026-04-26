@@ -30,9 +30,9 @@ const StatCard = ({ title, value, icon: Icon, change, changeType, color, prefix,
       {/* Decorative accent */}
       <div className={`absolute top-0 right-0 w-16 h-16 opacity-[0.03] transition-all duration-500 group-hover:scale-150 ${color}`} style={{ borderRadius: '0 0 0 100%' }} />
       
-      <div className="flex items-start justify-between mb-6 relative z-10">
-        <div className={`w-14 h-14 rounded-[1.25rem] flex items-center justify-center flex-shrink-0 transition-transform duration-500 group-hover:rotate-6 ${color} shadow-lg shadow-current/10`}>
-          <Icon className="w-7 h-7" />
+      <div className="flex items-start justify-between mb-4 sm:mb-6 relative z-10">
+        <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-[1.25rem] flex items-center justify-center flex-shrink-0 transition-transform duration-500 group-hover:rotate-6 ${color} shadow-lg shadow-current/10`}>
+          <Icon className="w-6 h-6 sm:w-7 sm:h-7" />
         </div>
         {change && (
           <div className={`
@@ -52,8 +52,8 @@ const StatCard = ({ title, value, icon: Icon, change, changeType, color, prefix,
         <p className={`text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-50 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
           {title}
         </p>
-        <p className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          {prefix && <span className="text-sm font-bold opacity-30 mr-1">{prefix}</span>}
+        <p className={`text-2xl sm:text-3xl font-black tracking-tighter sm:tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {prefix && <span className="text-sm sm:text-base font-bold opacity-40 mr-0.5">{prefix}</span>}
           {typeof value === 'number' ? value.toLocaleString('en-IN') : value}
         </p>
       </div>
