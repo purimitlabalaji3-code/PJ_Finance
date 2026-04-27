@@ -24,17 +24,18 @@ async function setup() {
   // Customers table
   await sql`
     CREATE TABLE IF NOT EXISTS customers (
-      id         SERIAL PRIMARY KEY,
-      name       TEXT NOT NULL,
-      phone      TEXT NOT NULL,
-      age        INT,
-      gender     TEXT,
-      aadhaar    TEXT,
-      address    TEXT,
-      status     TEXT NOT NULL DEFAULT 'Active',
-      image      TEXT,
-      join_date  DATE NOT NULL DEFAULT CURRENT_DATE,
-      created_at TIMESTAMPTZ DEFAULT NOW()
+      id            SERIAL PRIMARY KEY,
+      customer_code TEXT,
+      name          TEXT NOT NULL,
+      phone         TEXT NOT NULL,
+      age           INT,
+      gender        TEXT,
+      aadhaar       TEXT,
+      address       TEXT,
+      status        TEXT NOT NULL DEFAULT 'Active',
+      image         TEXT,
+      join_date     DATE NOT NULL DEFAULT CURRENT_DATE,
+      created_at    TIMESTAMPTZ DEFAULT NOW()
     )
   `;
   console.log('✅ customers table ready');
@@ -43,6 +44,7 @@ async function setup() {
   await sql`
     CREATE TABLE IF NOT EXISTS loans (
       id           SERIAL PRIMARY KEY,
+      loan_code    TEXT,
       customer_id  INT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
       loan_amount  NUMERIC(12,2) NOT NULL,
       interest     NUMERIC(5,2)  NOT NULL DEFAULT 10,
@@ -52,6 +54,7 @@ async function setup() {
       status       TEXT NOT NULL DEFAULT 'Active',
       paid_days    INT NOT NULL DEFAULT 0,
       total_days   INT NOT NULL DEFAULT 100,
+      loan_type    TEXT NOT NULL DEFAULT 'Daily',
       created_at   TIMESTAMPTZ DEFAULT NOW()
     )
   `;

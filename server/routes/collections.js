@@ -13,10 +13,18 @@ const localToday = () =>
 router.get('/', auth, async (req, res) => {
   try {
     const date = req.query.date || localToday();
+    
+    // AUTO-GENERATION: Whenever collections are requested, ensure today and yesterday are generated
+    // This makes the app "Self-Healing" if it wasn't opened for a day.
+    const datesToCheck = [date, localToday()];
+    for (const d of datesToCheck) {
+      await generateForDate(d);
+    }
+
     const rows = await sql`
       SELECT col.*, 
              c.name AS customer_name, c.phone, c.customer_code,
-             l.total_amount, l.paid_days, l.daily_amount
+             l.total_amount, l.paid_days, l.daily_amount, l.loan_type
       FROM collections col
       JOIN customers c ON c.id = col.customer_id
       JOIN loans l ON l.id = col.loan_id
@@ -25,9 +33,46 @@ router.get('/', auth, async (req, res) => {
     `;
     res.json(rows);
   } catch (err) {
+    console.error('Error fetching collections:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+// Helper function to generate collections for a specific date
+async function generateForDate(date) {
+  return sql`
+    INSERT INTO collections (loan_id, customer_id, due_amount, date)
+    SELECT id, customer_id, daily_amount, ${date}
+    FROM loans l
+    WHERE status = 'Active' 
+      AND EXTRACT(DOW FROM ${date}::date) != 0 -- Skip Sundays
+      AND (
+        (loan_type = 'Daily' OR loan_type IS NULL)
+        OR (
+          loan_type = '15-Day' 
+          AND (
+            MOD((${date}::date - start_date::date), 15) = 0 
+            OR (MOD((${date}::date - start_date::date), 15) = 1 AND EXTRACT(DOW FROM ${date}::date) = 1)
+          ) 
+          AND ${date}::date > start_date
+        )
+        OR (
+          loan_type = 'Monthly' 
+          AND (
+            MOD((${date}::date - start_date::date), 30) = 0 
+            OR (MOD((${date}::date - start_date::date), 30) = 1 AND EXTRACT(DOW FROM ${date}::date) = 1)
+          ) 
+          AND ${date}::date > start_date
+        )
+      )
+      AND start_date <= ${date}
+      AND NOT EXISTS (
+        SELECT 1 FROM collections c 
+        WHERE c.loan_id = l.id AND c.date = ${date}
+      )
+    RETURNING id
+  `;
+}
 
 // GET /api/collections/all — full history
 router.get('/all', auth, async (req, res) => {
@@ -35,7 +80,7 @@ router.get('/all', auth, async (req, res) => {
     const rows = await sql`
       SELECT col.*, 
              c.name AS customer_name, c.phone, c.customer_code,
-             l.total_amount, l.paid_days, l.daily_amount
+             l.total_amount, l.paid_days, l.daily_amount, l.loan_type
       FROM collections col
       JOIN customers c ON c.id = col.customer_id
       JOIN loans l ON l.id = col.loan_id
@@ -61,45 +106,11 @@ router.get('/loan/:loanId', auth, async (req, res) => {
   }
 });
 
-// POST /api/collections — generate daily collections for all active loans
+// POST /api/collections/generate
 router.post('/generate', auth, async (req, res) => {
   try {
     const date = req.query.date || localToday();
-    
-    // Bulk INSERT using a single query (much faster than a loop)
-    const result = await sql`
-      INSERT INTO collections (loan_id, customer_id, due_amount, date)
-      SELECT id, customer_id, daily_amount, ${date}
-      FROM loans l
-      WHERE status = 'Active' 
-        AND EXTRACT(DOW FROM ${date}::date) != 0
-        AND (
-          (loan_type = 'Daily' OR loan_type IS NULL)
-          OR (
-            loan_type = '15-Day' 
-            AND (
-              MOD((${date}::date - start_date::date), 15) = 0 
-              OR (MOD((${date}::date - start_date::date), 15) = 1 AND EXTRACT(DOW FROM ${date}::date) = 1)
-            ) 
-            AND ${date}::date > start_date
-          )
-          OR (
-            loan_type = 'Monthly' 
-            AND (
-              MOD((${date}::date - start_date::date), 30) = 0 
-              OR (MOD((${date}::date - start_date::date), 30) = 1 AND EXTRACT(DOW FROM ${date}::date) = 1)
-            ) 
-            AND ${date}::date > start_date
-          )
-        )
-        AND start_date <= ${date}
-        AND NOT EXISTS (
-          SELECT 1 FROM collections c 
-          WHERE c.loan_id = l.id AND c.date = ${date}
-        )
-      RETURNING id
-    `;
-    
+    const result = await generateForDate(date);
     res.json({ message: `Generated ${result.length} collection entries`, date });
   } catch (err) {
     console.error(err);
