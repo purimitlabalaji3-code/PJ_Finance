@@ -29,7 +29,8 @@ router.get('/', auth, async (req, res) => {
       JOIN customers c ON c.id = col.customer_id
       JOIN loans l ON l.id = col.loan_id
       WHERE col.date = ${date}
-      ORDER BY col.created_at DESC
+         OR (col.status = 'Pending' AND l.loan_type IN ('15-Day', 'Monthly'))
+      ORDER BY col.date ASC, col.created_at DESC
     `;
     res.json(rows);
   } catch (err) {

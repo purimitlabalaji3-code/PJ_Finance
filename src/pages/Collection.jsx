@@ -63,6 +63,11 @@ const CollectionRow = ({ entry, isDark }) => {
               }`}>
                 {entry.loanType}
               </span>
+              {entry.status === 'Pending' && new Date(entry.date).toISOString().split('T')[0] < new Date().toISOString().split('T')[0] && (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-red-500 text-white animate-pulse">
+                  Overdue
+                </span>
+              )}
             </div>
           </div>
         </div>
