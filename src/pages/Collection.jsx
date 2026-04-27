@@ -63,7 +63,6 @@ const CollectionRow = ({ entry, isDark }) => {
               }`}>
                 {entry.loanType}
               </span>
-              </span>
             </div>
           </div>
         </div>
