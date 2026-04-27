@@ -50,29 +50,34 @@ const getImageDataUrl = async (src) => {
 };
 
 // ── PDF Header Template ──────────────────────────────────────────────────
-const getHtmlHeader = (title, subtitle = '') => `
-  <div class="pdf-header" style="display: flex; align-items: center; border: 2px solid #1e3a8a; padding: 20px; border-radius: 12px; margin-bottom: 25px; background: white; position: relative; height: 90px;">
-    <!-- LEFT: Logo and Text -->
-    <div style="display: flex; align-items: center; gap: 18px; flex: 1;">
-      <img src="/logo.png" style="height: 65px; object-fit: contain;" onerror="this.style.display='none'">
-      <div>
-        <h1 style="margin: 0; font-size: 26px; color: #1e3a8a; font-weight: 900; letter-spacing: 0.5px;">PJ FINANCE</h1>
-        <h2 style="margin: 4px 0 0; font-size: 16px; color: #475569; font-weight: 700; text-transform: uppercase;">${title}</h2>
+const getHtmlHeader = (title, subtitle = '', settings = {}) => {
+  const { companyName = 'PJ FINANCE', phone = '', logoUrl = '', showLogo = true } = settings;
+  
+  return `
+    <div class="pdf-header" style="display: flex; align-items: center; border: 2px solid #1e3a8a; padding: 20px; border-radius: 12px; margin-bottom: 25px; background: white; position: relative; height: 90px;">
+      <!-- LEFT: Logo and Text -->
+      <div style="display: flex; align-items: center; gap: 18px; flex: 1;">
+        ${(showLogo && logoUrl) ? `<img src="${logoUrl}" style="height: 65px; width: 65px; object-fit: contain; border-radius: 8px;">` : `<div style="height: 65px; width: 65px; background: #1e3a8a; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 900; font-size: 24px;">${companyName.charAt(0)}</div>`}
+        <div>
+          <h1 style="margin: 0; font-size: 26px; color: #1e3a8a; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase;">${companyName}</h1>
+          <h2 style="margin: 4px 0 0; font-size: 16px; color: #475569; font-weight: 700; text-transform: uppercase;">${title}</h2>
+          ${phone ? `<div style="font-size: 11px; color: #64748b; font-weight: 600; margin-top: 2px;">📞 ${phone}</div>` : ''}
+        </div>
+      </div>
+
+      <!-- MIDDLE: Centered Image (Optional / Watermark style) -->
+      <div style="position: absolute; left: 50%; transform: translateX(-50%); text-align: center; opacity: 0.1;">
+        <h1 style="margin: 0; font-size: 40px; color: #1e3a8a; font-weight: 900;">${companyName.split(' ')[0]}</h1>
+      </div>
+
+      <!-- RIGHT: Meta Info -->
+      <div style="text-align: right; flex: 1;">
+        <div style="font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 5px;">Generated: ${new Date().toLocaleString('en-IN')}</div>
+        ${subtitle ? `<div style="font-weight: 900; font-size: 18px; color: #1e3a8a; border-top: 1px solid #e2e8f0; padding-top: 5px; display: inline-block;">${subtitle}</div>` : ''}
       </div>
     </div>
-
-    <!-- MIDDLE: Centered Image -->
-    <div style="position: absolute; left: 50%; transform: translateX(-50%); text-align: center;">
-      <img src="/download.png" style="height: 75px; object-fit: contain;" onerror="this.style.display='none'">
-    </div>
-
-    <!-- RIGHT: Meta Info -->
-    <div style="text-align: right; flex: 1;">
-      <div style="font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 5px;">Generated: ${new Date().toLocaleString('en-IN')}</div>
-      ${subtitle ? `<div style="font-weight: 900; font-size: 18px; color: #1e3a8a; border-top: 1px solid #e2e8f0; padding-top: 5px; display: inline-block;">${subtitle}</div>` : ''}
-    </div>
-  </div>
-`;
+  `;
+};
 
 // Standard Table CSS for all PDFs
 const tableStyles = `
@@ -112,11 +117,11 @@ export const exportCustomersCSV = (customers) => {
   );
 };
 
-export const exportCustomersPDF = async (customers) => {
+export const exportCustomersPDF = async (customers, settings = {}) => {
   const container = document.createElement('div');
   container.innerHTML = `
     <div class="pdf-page" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-      ${getHtmlHeader('Customer List Report', `Total Customers: ${customers.length}`)}
+      ${getHtmlHeader('Customer List Report', `Total Customers: ${customers.length}`, settings)}
       <style>${tableStyles}</style>
       <table>
         <thead>
@@ -172,7 +177,7 @@ export const exportLoansCSV = (loans) => {
   );
 };
 
-export const exportLoansPDF = async (loans) => {
+export const exportLoansPDF = async (loans, settings = {}) => {
   const totalDisbursed = loans.reduce((s, l) => s + Number(l.loanAmount), 0);
   const totalInterest  = loans.reduce((s, l) => {
     const tot = Number(l.totalAmount) || Number(l.loanAmount) * (1 + Number(l.interest) / 100);
@@ -182,7 +187,7 @@ export const exportLoansPDF = async (loans) => {
   const container = document.createElement('div');
   container.innerHTML = `
     <div class="pdf-page" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-      ${getHtmlHeader('Loan Summary Report', `Total Loans: ${loans.length}`)}
+      ${getHtmlHeader('Loan Summary Report', `Total Loans: ${loans.length}`, settings)}
       <style>${tableStyles}</style>
       <table>
         <thead>
@@ -252,7 +257,7 @@ export const exportCollectionCSV = (collections) => {
   );
 };
 
-export const exportCollectionPDF = async (collections, loans = []) => {
+export const exportCollectionPDF = async (collections, loans = [], settings = {}) => {
   const paid = collections.filter(c => c.status === 'Paid');
   const pend = collections.filter(c => c.status === 'Pending');
   const totalPaid    = paid.reduce((s, c) => s + Number(c.paidAmount), 0);
@@ -261,7 +266,7 @@ export const exportCollectionPDF = async (collections, loans = []) => {
   const container = document.createElement('div');
   container.innerHTML = `
     <div class="pdf-page" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-      ${getHtmlHeader('Daily Collection Report', `${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`)}
+      ${getHtmlHeader('Daily Collection Report', `${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, settings)}
       <style>${tableStyles}</style>
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
         <div style="padding: 12px; border-radius: 8px; text-align: center; color: white; background: #1e3a8a">
@@ -346,7 +351,7 @@ export const exportSummaryCSV = (data) => {
   );
 };
 
-export const exportSummaryPDF = async ({ customers, loans, collections }) => {
+export const exportSummaryPDF = async ({ customers, loans, collections }, settings = {}) => {
   const totalDisbursed = loans.reduce((s, l) => s + Number(l.loanAmount), 0);
   const totalInterest  = loans.reduce((s, l) => {
     const tot = Number(l.totalAmount) || Number(l.loanAmount) * (1 + Number(l.interest) / 100);
@@ -360,7 +365,7 @@ export const exportSummaryPDF = async ({ customers, loans, collections }) => {
   const container = document.createElement('div');
   container.innerHTML = `
     <div class="pdf-page" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-      ${getHtmlHeader('Business Summary Report')}
+      ${getHtmlHeader('Business Summary Report', '', settings)}
       <style>${tableStyles}</style>
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
         <div style="padding: 12px; border-radius: 8px; text-align: center; color: white; background: #1e3a8a"><div style="font-size: 10px; opacity: 0.9; text-transform: uppercase;">Total Customers</div><div style="font-size: 16px; font-weight: bold;">${customers.length}</div></div>
@@ -420,7 +425,7 @@ export const exportSummaryPDF = async ({ customers, loans, collections }) => {
 // ══════════════════════════════════════════════════════════════════════════
 // 5. SINGLE LOAN STATEMENT — PDF
 // ══════════════════════════════════════════════════════════════════════════
-export const exportLoanStatementPDF = async (loan, loanCollections) => {
+export const exportLoanStatementPDF = async (loan, loanCollections, settings = {}) => {
   const totalPayable   = Number(loan.totalAmount);
   const totalCollected = Number(loan.totalCollected || 0);
   const remaining      = Math.max(0, totalPayable - totalCollected);
@@ -428,7 +433,7 @@ export const exportLoanStatementPDF = async (loan, loanCollections) => {
   const container = document.createElement('div');
   container.innerHTML = `
     <div class="pdf-page" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-      ${getHtmlHeader('Loan Statement / Ledger', `${loan.loanCode || '—'} | ${loan.customerName}`)}
+      ${getHtmlHeader('Loan Statement / Ledger', `${loan.loanCode || '—'} | ${loan.customerName}`, settings)}
       <style>${tableStyles}</style>
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px;">
         <div class="info-box"><div>Loan Type</div><div style="font-weight:bold">${loan.loanType}</div></div>

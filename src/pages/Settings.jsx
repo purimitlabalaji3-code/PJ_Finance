@@ -22,7 +22,7 @@ const SectionTitle = ({ icon: Icon, title, subtitle, color }) => {
 };
 
 const Settings = () => {
-  const { theme } = useApp();
+  const { theme, settings, updateSettings } = useApp();
   const isDark = theme === 'dark';
 
   // ── Password state ──────────────────────────────────────
@@ -49,42 +49,38 @@ const Settings = () => {
     }
   };
 
-  // ── Logo state ──────────────────────────────────────────
-  const [logo, setLogo] = useState(null);
+  // ── Sync local states with global settings ────────────────
+  const [localPdf, setLocalPdf] = useState(settings);
+  const [localLogo, setLocalLogo] = useState(settings.logoUrl);
   const logoRef = useRef();
+
+  useEffect(() => {
+    setLocalPdf(settings);
+    setLocalLogo(settings.logoUrl);
+  }, [settings]);
 
   const handleLogoUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (file.size > 2 * 1024 * 1024) return toast.error('Image too large (max 2MB)');
     if (!file.type.startsWith('image/')) return toast.error('Please upload a valid image');
+    
     const reader = new FileReader();
-    reader.onload = () => setLogo(reader.result);
+    reader.onload = () => setLocalLogo(reader.result);
     reader.readAsDataURL(file);
   };
 
   const handleSaveLogo = () => {
-    if (!logo) return toast.error('No logo selected');
-    toast.success('Logo saved successfully!');
+    updateSettings({ logoUrl: localLogo });
   };
-
-  // ── PDF Structure state ─────────────────────────────────
-  const [pdf, setPdf] = useState({
-    companyName: 'PJ Finance',
-    address: '',
-    phone: '',
-    footer: 'Thank you for your payment.',
-    showLogo: true,
-    showTimeline: true,
-    showSummary: true,
-  });
 
   const handlePdfChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setPdf(p => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
+    setLocalPdf(p => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleSavePdf = () => {
-    toast.success('PDF structure saved!');
+    updateSettings(localPdf);
   };
 
   const inputCls = `w-full px-3 py-2.5 rounded-xl text-sm outline-none border transition-all duration-200 ${
@@ -142,11 +138,11 @@ const Settings = () => {
                 : 'border-light-border hover:border-blue-300 bg-gray-50'
             }`}
           >
-            {logo ? (
+            {localLogo ? (
               <>
-                <img src={logo} alt="Logo preview" className="h-24 object-contain rounded-xl" />
+                <img src={localLogo} alt="Logo preview" className="h-24 object-contain rounded-xl" />
                 <button
-                  onClick={(e) => { e.stopPropagation(); setLogo(null); }}
+                  onClick={(e) => { e.stopPropagation(); setLocalLogo(null); }}
                   className="absolute top-2 right-2 p-1 rounded-full bg-red-500/80 text-white hover:bg-red-600"
                 >
                   <X className="w-3 h-3" />
@@ -183,19 +179,19 @@ const Settings = () => {
         <div className="space-y-3">
           <div>
             <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Company Name</label>
-            <input name="companyName" value={pdf.companyName} onChange={handlePdfChange} className={inputCls} placeholder="PJ Finance" />
+            <input name="companyName" value={localPdf.companyName} onChange={handlePdfChange} className={inputCls} placeholder="PJ Finance" />
           </div>
           <div>
             <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Address</label>
-            <input name="address" value={pdf.address} onChange={handlePdfChange} className={inputCls} placeholder="123, Main St, Chennai - 600001" />
+            <input name="address" value={localPdf.address} onChange={handlePdfChange} className={inputCls} placeholder="123, Main St, Chennai - 600001" />
           </div>
           <div>
             <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Phone Number</label>
-            <input name="phone" value={pdf.phone} onChange={handlePdfChange} className={inputCls} placeholder="+91 98765 43210" />
+            <input name="phone" value={localPdf.phone} onChange={handlePdfChange} className={inputCls} placeholder="+91 98765 43210" />
           </div>
           <div>
             <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Footer Note</label>
-            <input name="footer" value={pdf.footer} onChange={handlePdfChange} className={inputCls} placeholder="Thank you for your payment." />
+            <input name="pdfFooter" value={localPdf.pdfFooter} onChange={handlePdfChange} className={inputCls} placeholder="Thank you for your payment." />
           </div>
 
           {/* Show/Hide Toggles */}
@@ -208,7 +204,7 @@ const Settings = () => {
             ].map(({ name, label }) => (
               <label key={name} className="flex items-center justify-between cursor-pointer">
                 <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{label}</span>
-                <input type="checkbox" name={name} checked={pdf[name]} onChange={handlePdfChange} className={checkCls} />
+                <input type="checkbox" name={name} checked={localPdf[name]} onChange={handlePdfChange} className={checkCls} />
               </label>
             ))}
           </div>

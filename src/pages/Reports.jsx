@@ -77,7 +77,7 @@ const SectionCard = ({ title, description, icon: Icon, isDark, children }) => (
 );
 
 const Reports = () => {
-  const { theme, customers, loans, collections: todayCollections, loadAll } = useApp();
+  const { theme, customers, loans, collections: todayCollections, loadAll, settings } = useApp();
   const isDark = theme === 'dark';
   const [allCollections, setAllCollections] = useState([]);
 
@@ -187,27 +187,27 @@ const Reports = () => {
         <SectionCard title="Customer Reports" description="Individual customer collection history" icon={Users} isDark={isDark}>
           <ReportRow label="Daily Customer Report"    icon={FileText}     variant="primary" isDark={isDark}
             onCSV={() => run(() => exportCustomersCSV(customers), 'Daily Customer CSV')}
-            onPDF={() => run(() => exportCustomersPDF(customers), 'Daily Customer PDF')}
+            onPDF={() => run(() => exportCustomersPDF(customers, settings), 'Daily Customer PDF')}
           />
           <ReportRow label="Weekly Customer Report"   icon={Calendar}     variant="success" isDark={isDark}
             onCSV={() => run(() => exportCustomersCSV(customers), 'Weekly Customer CSV')}
-            onPDF={() => run(() => exportCustomersPDF(customers), 'Weekly Customer PDF')}
+            onPDF={() => run(() => exportCustomersPDF(customers, settings), 'Weekly Customer PDF')}
           />
           <ReportRow label="Monthly Customer Report"  icon={BarChart2}    variant="warning" isDark={isDark}
             onCSV={() => run(() => exportCustomersCSV(customers), 'Monthly Customer CSV')}
-            onPDF={() => run(() => exportCustomersPDF(customers), 'Monthly Customer PDF')}
+            onPDF={() => run(() => exportCustomersPDF(customers, settings), 'Monthly Customer PDF')}
           />
           <ReportRow label="100-Days Customer PDF"    icon={FileBarChart}  variant="purple" isDark={isDark}
             onCSV={() => run(() => exportLoansCSV(loans.filter(l => l.loanType === 'Daily' || !l.loanType)), '100-Day Loan CSV')}
-            onPDF={() => run(() => exportLoansPDF(loans.filter(l => l.loanType === 'Daily' || !l.loanType)), '100-Day Loan PDF')}
+            onPDF={() => run(() => exportLoansPDF(loans.filter(l => l.loanType === 'Daily' || !l.loanType), settings), '100-Day Loan PDF')}
           />
           <ReportRow label="15-Day Loans PDF"         icon={Calendar}     variant="primary" isDark={isDark}
             onCSV={() => run(() => exportLoansCSV(loans.filter(l => l.loanType === '15-Day')), '15-Day Loans CSV')}
-            onPDF={() => run(() => exportLoansPDF(loans.filter(l => l.loanType === '15-Day')), '15-Day Loans PDF')}
+            onPDF={() => run(() => exportLoansPDF(loans.filter(l => l.loanType === '15-Day'), settings), '15-Day Loans PDF')}
           />
           <ReportRow label="Monthly Loans PDF"        icon={FileBarChart}  variant="purple" isDark={isDark}
             onCSV={() => run(() => exportLoansCSV(loans.filter(l => l.loanType === 'Monthly')), 'Monthly Loans CSV')}
-            onPDF={() => run(() => exportLoansPDF(loans.filter(l => l.loanType === 'Monthly')), 'Monthly Loans PDF')}
+            onPDF={() => run(() => exportLoansPDF(loans.filter(l => l.loanType === 'Monthly'), settings), 'Monthly Loans PDF')}
           />
         </SectionCard>
 
@@ -215,23 +215,23 @@ const Reports = () => {
         <SectionCard title="Overall Reports" description="Business-wide collection summaries" icon={BarChart2} isDark={isDark}>
           <ReportRow label="Daily Overall Report"     icon={FileText}     variant="primary" isDark={isDark}
             onCSV={() => run(() => exportCollectionCSV(filterByRange('daily')), 'Daily Collection CSV')}
-            onPDF={() => run(() => exportCollectionPDF(filterByRange('daily'), loans), 'Daily Collection PDF')}
+            onPDF={() => run(() => exportCollectionPDF(filterByRange('daily'), loans, settings), 'Daily Collection PDF')}
           />
           <ReportRow label="Weekly Overall Report"    icon={Calendar}     variant="success" isDark={isDark}
             onCSV={() => run(() => exportCollectionCSV(filterByRange('weekly')), 'Weekly Collection CSV')}
-            onPDF={() => run(() => exportCollectionPDF(filterByRange('weekly'), loans), 'Weekly Collection PDF')}
+            onPDF={() => run(() => exportCollectionPDF(filterByRange('weekly'), loans, settings), 'Weekly Collection PDF')}
           />
           <ReportRow label="Monthly Overall Report"   icon={BarChart2}    variant="warning" isDark={isDark}
             onCSV={() => run(() => exportCollectionCSV(filterByRange('monthly')), 'Monthly Collection CSV')}
-            onPDF={() => run(() => exportCollectionPDF(filterByRange('monthly'), loans), 'Monthly Collection PDF')}
+            onPDF={() => run(() => exportCollectionPDF(filterByRange('monthly'), loans, settings), 'Monthly Collection PDF')}
           />
           <ReportRow label="15-Day Collections PDF"   icon={Calendar}     variant="primary" isDark={isDark}
             onCSV={() => run(() => exportCollectionCSV(allCollections.filter(c => loans.find(l=>l.id===c.loanId)?.loanType === '15-Day')), '15-Day Collection CSV')}
-            onPDF={() => run(() => exportCollectionPDF(allCollections.filter(c => loans.find(l=>l.id===c.loanId)?.loanType === '15-Day'), loans), '15-Day Collection PDF')}
+            onPDF={() => run(() => exportCollectionPDF(allCollections.filter(c => loans.find(l=>l.id===c.loanId)?.loanType === '15-Day'), loans, settings), '15-Day Collection PDF')}
           />
           <ReportRow label="Monthly Collections PDF"  icon={FileBarChart} variant="purple" isDark={isDark}
             onCSV={() => run(() => exportCollectionCSV(allCollections.filter(c => loans.find(l=>l.id===c.loanId)?.loanType === 'Monthly')), 'Monthly Collection CSV')}
-            onPDF={() => run(() => exportCollectionPDF(allCollections.filter(c => loans.find(l=>l.id===c.loanId)?.loanType === 'Monthly'), loans), 'Monthly Collection PDF')}
+            onPDF={() => run(() => exportCollectionPDF(allCollections.filter(c => loans.find(l=>l.id===c.loanId)?.loanType === 'Monthly'), loans, settings), 'Monthly Collections PDF')}
           />
           <ReportRow label="Business Summary PDF"     icon={FileBarChart}  variant="purple" isDark={isDark}
             onCSV={() => run(() => exportSummaryCSV({
@@ -240,7 +240,7 @@ const Reports = () => {
               'Total Payable': `Rs.${Math.round(totalPayable)}`, 'Collected Today': `Rs.${totalCollected}`,
               'Pending Today': `Rs.${totalPending}`, 'Paid Today': `${paidToday}/${todayCollections.length}`,
             }), 'Summary CSV')}
-            onPDF={() => run(() => exportSummaryPDF({ customers, loans, collections: todayCollections }), 'Business Summary PDF')}
+            onPDF={() => run(() => exportSummaryPDF({ customers, loans, collections: todayCollections }, settings), 'Business Summary PDF')}
           />
         </SectionCard>
       </div>

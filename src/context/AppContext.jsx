@@ -12,6 +12,7 @@ import {
   apiFetchLoans, apiAddLoan, apiDeleteLoan,
   apiFetchCollections, apiFetchAllCollections, apiGenerateCollections, apiAddManualCollection, apiMarkPaid, apiMarkUnpaid,
   apiFetchCollectionSummary,
+  apiFetchSettings, apiSaveSettings,
 } from '@/utils/api';
 
 import toast from 'react-hot-toast';
@@ -88,6 +89,16 @@ export const AppProvider = ({ children }) => {
   const [collections, setCollections] = useState([]);
   const [allCollections, setAllCollections] = useState([]);
   const [collectionSummary, setCollectionSummary] = useState([]);
+  const [settings, setSettings] = useState({
+    companyName: 'PJ Finance',
+    address: '',
+    phone: '',
+    pdfFooter: 'Thank you for your payment.',
+    showLogo: true,
+    showTimeline: true,
+    showSummary: true,
+    logoUrl: '',
+  });
   // Use local date (not UTC) so IST users see the correct day
   const [collectionDate, setCollectionDate] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [loading, setLoading] = useState(false);
@@ -170,7 +181,19 @@ export const AppProvider = ({ children }) => {
         setCollections(Array.isArray(colToday) ? colToday.map(normalCollection) : []);
         setCollectionSummary(Array.isArray(summary) ? summary : []);
 
-        // 2. Fetch full history ONLY if we don't have it yet to save significant bandwidth
+        // 2. Fetch Settings
+        apiFetchSettings().then(s => {
+          if (Array.isArray(s)) {
+            const mapped = {};
+            s.forEach(item => {
+              const camel = item.key.replace(/_([a-z])/g, g => g[1].toUpperCase());
+              mapped[camel] = (item.value === 'true' ? true : item.value === 'false' ? false : item.value);
+            });
+            setSettings(prev => ({ ...prev, ...mapped }));
+          }
+        }).catch(() => {});
+
+        // 3. Fetch full history ONLY if we don't have it yet to save significant bandwidth
         // History is large and doesn't change every second.
         setAllCollections(prev => {
           if (prev.length === 0) {
@@ -314,6 +337,22 @@ export const AppProvider = ({ children }) => {
     pendingAmount:   collections.filter(c => c.status === 'Pending').reduce((s, c) => s + c.dueAmount, 0),
   };
 
+  const updateSettings = useCallback(async (newSettings) => {
+    try {
+      // Convert camelCase to snake_case for DB
+      const dbSettings = {};
+      Object.keys(newSettings).forEach(k => {
+        const snake = k.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+        dbSettings[snake] = String(newSettings[k]);
+      });
+      await apiSaveSettings(dbSettings);
+      setSettings(prev => ({ ...prev, ...newSettings }));
+      toast.success('Settings saved successfully! ⚙️');
+    } catch (err) {
+      toast.error('Failed to save settings');
+    }
+  }, []);
+
   return (
     <AppContext.Provider value={{
       isLoggedIn, login, googleLogin, logout,
@@ -326,6 +365,7 @@ export const AppProvider = ({ children }) => {
       collectionSummary,
       loading, loadAll,
       stats,
+      settings, updateSettings,
     }}>
       {children}
     </AppContext.Provider>
