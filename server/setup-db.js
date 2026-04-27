@@ -34,6 +34,7 @@ async function setup() {
       address       TEXT,
       status        TEXT NOT NULL DEFAULT 'Active',
       image         TEXT,
+      image_url     TEXT,
       join_date     DATE NOT NULL DEFAULT CURRENT_DATE,
       created_at    TIMESTAMPTZ DEFAULT NOW()
     )
@@ -63,14 +64,19 @@ async function setup() {
   // Collections table
   await sql`
     CREATE TABLE IF NOT EXISTS collections (
-      id          SERIAL PRIMARY KEY,
-      loan_id     INT NOT NULL REFERENCES loans(id) ON DELETE CASCADE,
-      customer_id INT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-      due_amount  NUMERIC(10,2) NOT NULL,
-      paid_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
-      date        DATE NOT NULL DEFAULT CURRENT_DATE,
-      status      TEXT NOT NULL DEFAULT 'Pending',
-      created_at  TIMESTAMPTZ DEFAULT NOW()
+      id            SERIAL PRIMARY KEY,
+      loan_id       INT NOT NULL REFERENCES loans(id) ON DELETE CASCADE,
+      customer_id   INT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+      customer_code TEXT,
+      customer_name TEXT,
+      due_amount    NUMERIC(10,2) NOT NULL,
+      paid_amount   NUMERIC(10,2) DEFAULT 0,
+      total_amount  NUMERIC(12,2),
+      paid_days     INT,
+      daily_amount  NUMERIC(10,2),
+      status        TEXT NOT NULL DEFAULT 'Pending',
+      date          DATE NOT NULL DEFAULT CURRENT_DATE,
+      created_at    TIMESTAMPTZ DEFAULT NOW()
     )
   `;
   console.log('✅ collections table ready');
