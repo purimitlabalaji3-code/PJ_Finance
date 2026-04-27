@@ -63,24 +63,27 @@ const CollectionRow = ({ entry, isDark }) => {
               }`}>
                 {entry.loanType}
               </span>
-              {entry.status === 'Pending' && new Date(entry.date).toISOString().split('T')[0] < new Date().toISOString().split('T')[0] && (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-red-500 text-white animate-pulse">
-                  Overdue
-                </span>
-              )}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Status Badge */}
-      <div className={`flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-        isPaid
-          ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-700'
-          : isDark ? 'bg-red-500/20 text-accent-red' : 'bg-red-100 text-red-600'
-      }`}>
-        {isPaid ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-        {isPaid ? 'Paid' : 'Pending'}
+      {/* Status & Overdue Badge */}
+      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+          isPaid
+            ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-700'
+            : isDark ? 'bg-red-500/20 text-accent-red' : 'bg-red-100 text-red-600'
+        }`}>
+          {isPaid ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+          {isPaid ? 'Paid' : 'Pending'}
+        </div>
+        {!isPaid && new Date(entry.date).toISOString().split('T')[0] < new Date().toISOString().split('T')[0] && (
+          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-red-600 text-white shadow-lg animate-pulse ring-2 ring-red-500/50">
+            Overdue
+          </span>
+        )}
       </div>
 
       {/* Input & Actions */}
