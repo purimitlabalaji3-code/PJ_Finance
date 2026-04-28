@@ -41,9 +41,11 @@ router.get('/:id', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     const { customerId, loanAmount, interest, startDate, loanType } = req.body;
-    if (!customerId || !loanAmount) return res.status(400).json({ error: 'customerId and loanAmount required' });
-
     const amt = parseFloat(loanAmount);
+    
+    if (!customerId || !loanAmount || isNaN(amt) || amt <= 0) 
+      return res.status(400).json({ error: 'customerId and valid loanAmount required' });
+
     const type = loanType || 'Daily';
     
     let totalAmount, dailyAmount;

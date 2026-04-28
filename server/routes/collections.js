@@ -124,12 +124,14 @@ router.post('/generate', auth, async (req, res) => {
 router.post('/manual', auth, async (req, res) => {
   try {
     const { loanId, amount, date } = req.body;
-    if (!loanId || !amount) return res.status(400).json({ error: 'loanId and amount required' });
+    const parsedAmount = parseFloat(amount);
+    if (!loanId || !amount || isNaN(parsedAmount) || parsedAmount <= 0) 
+      return res.status(400).json({ error: 'Valid loanId and numeric amount required' });
 
     // Insert a paid collection directly
     const [row] = await sql`
       INSERT INTO collections (loan_id, customer_id, due_amount, paid_amount, date, status)
-      SELECT id, customer_id, ${parseFloat(amount)}, ${parseFloat(amount)}, ${date || localToday()}, 'Paid'
+      SELECT id, customer_id, ${parsedAmount}, ${parsedAmount}, ${date || localToday()}, 'Paid'
       FROM loans WHERE id = ${loanId}
       RETURNING *
     `;
@@ -148,12 +150,13 @@ router.post('/manual', auth, async (req, res) => {
 router.patch('/:id/pay', auth, async (req, res) => {
   try {
     const { amount } = req.body;
-    if (!amount || parseFloat(amount) <= 0)
-      return res.status(400).json({ error: 'Valid amount required' });
+    const parsedAmount = parseFloat(amount);
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0)
+      return res.status(400).json({ error: 'Valid numeric amount required' });
 
     const [row] = await sql`
       UPDATE collections
-      SET paid_amount = ${parseFloat(amount)}, status = 'Paid'
+      SET paid_amount = ${parsedAmount}, status = 'Paid'
       WHERE id = ${req.params.id}
       RETURNING *
     `;
