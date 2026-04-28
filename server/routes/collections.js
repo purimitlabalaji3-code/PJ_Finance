@@ -71,6 +71,7 @@ async function generateForDate(date) {
         SELECT 1 FROM collections c 
         WHERE c.loan_id = l.id AND c.date = ${date}
       )
+    ON CONFLICT (loan_id, date) DO NOTHING
     RETURNING id
   `;
 }
@@ -160,10 +161,10 @@ router.patch('/:id/pay', auth, async (req, res) => {
     // Increment paidDays on the loan
     await sql`UPDATE loans SET paid_days = paid_days + 1 WHERE id = ${row.loan_id}`;
 
-    // Auto-complete loan if 100 days paid
+    // Auto-complete loan if 100 days paid (Only applies to Daily loans)
     await sql`
       UPDATE loans SET status = 'Completed'
-      WHERE id = ${row.loan_id} AND paid_days >= total_days
+      WHERE id = ${row.loan_id} AND paid_days >= total_days AND loan_type = 'Daily'
     `;
 
     res.json(row);

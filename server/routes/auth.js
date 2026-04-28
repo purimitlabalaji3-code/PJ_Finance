@@ -122,6 +122,11 @@ router.post('/google', async (req, res) => {
     const googleEmail = payload['email'].toLowerCase().trim();
     const adminEmailEnv = process.env.ADMIN_EMAIL?.toLowerCase().trim();
 
+    if (!adminEmailEnv) {
+      console.warn(' [AUTH_FATAL]: ADMIN_EMAIL is not configured in .env');
+      return res.status(500).json({ success: false, error: 'Server misconfigured: Google Auth unavailable' });
+    }
+
     // 2. Authorization Check (Only Admin Email)
     if (googleEmail !== adminEmailEnv) {
       console.warn(` [AUTH_DENIED]: Non-admin Google login attempt: ${googleEmail}`);

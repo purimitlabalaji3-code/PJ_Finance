@@ -96,6 +96,7 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json(full);
   } catch (err) {
     console.error(err);
+    if (err.code === '23505') return res.status(400).json({ error: 'This record already exists (Duplicate Data)' });
     res.status(500).json({ error: 'Server error' });
   }
 });

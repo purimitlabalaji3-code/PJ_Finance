@@ -7,7 +7,8 @@ import toast from 'react-hot-toast';
 
 const CollectionRow = ({ entry, isDark }) => {
   const { markCollectionPaid, markCollectionPending } = useApp();
-  const [inputAmt, setInputAmt] = useState(entry.paidAmount > 0 ? String(entry.paidAmount) : '');
+  const [inputAmt, setInputAmt] = useState(entry.paidAmount > 0 ? String(entry.paidAmount) : String(entry.dueAmount || ''));
+  const [showModal, setShowModal] = useState(false);
   const isPaid = entry.status === 'Paid';
 
   const handlePaid = async () => {
@@ -16,6 +17,7 @@ const CollectionRow = ({ entry, isDark }) => {
     try {
       await markCollectionPaid(entry.id, amt);
       toast.success(`₹${amt} collected from ${entry.customerName} ✅`);
+      setShowModal(false);
     } catch (err) {
       toast.error(err.message || 'Failed to mark as paid');
     }
@@ -24,7 +26,7 @@ const CollectionRow = ({ entry, isDark }) => {
   const handlePending = async () => {
     try {
       await markCollectionPending(entry.id);
-      setInputAmt('');
+      setInputAmt(String(entry.dueAmount || ''));
       toast.success('Marked as pending');
     } catch (err) {
       toast.error(err.message || 'Failed to update status');
@@ -32,99 +34,154 @@ const CollectionRow = ({ entry, isDark }) => {
   };
 
   return (
-    <div className={`flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border transition-all duration-200 ${
-      isPaid
-        ? isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-green-50 border-green-200'
-        : isDark ? 'bg-red-500/5 border-red-500/20' : 'bg-red-50 border-red-200'
-    }`}>
-      {/* Customer Info */}
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        {entry.image
-          ? <img src={entry.image} alt={entry.customerName} className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border-2 border-dark-border" />
-          : <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-              isPaid
-                ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-700'
-                : isDark ? 'bg-red-500/20 text-accent-red' : 'bg-red-100 text-red-600'
-            }`}>
-              {entry.customerName?.charAt(0).toUpperCase() || '?'}
-            </div>
-        }
-        <div className="min-w-0">
-          <p className={`font-semibold text-sm truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{entry.customerName}</p>
-          <div className={`flex flex-col text-[11px] mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            <span>{entry.phone ? `${entry.phone} • ` : ''}Due: ₹{entry.dueAmount}</span>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className={`font-bold ${isDark ? 'text-yellow-500/80' : 'text-blue-600/80'}`}>
-                {entry.date ? new Date(entry.date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : ''}
-              </span>
-              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                entry.loanType === 'Daily' ? 'bg-yellow-400/10 text-yellow-500' : 
-                entry.loanType === '15-Day' ? 'bg-blue-400/10 text-blue-500' : 'bg-purple-400/10 text-purple-500'
+    <>
+      <div 
+        onClick={() => !isPaid && setShowModal(true)}
+        className={`flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+          !isPaid ? 'cursor-pointer' : ''
+        } ${
+          isPaid
+            ? isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-green-50 border-green-200'
+            : isDark ? 'bg-red-500/5 border-red-500/20' : 'bg-red-50 border-red-200'
+        }`}
+      >
+        {/* Customer Info */}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {entry.image
+            ? <img src={entry.image} alt={entry.customerName} className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border-2 border-dark-border" />
+            : <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                isPaid
+                  ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-700'
+                  : isDark ? 'bg-red-500/20 text-accent-red' : 'bg-red-100 text-red-600'
               }`}>
-                {entry.loanType}
-              </span>
+                {entry.customerName?.charAt(0).toUpperCase() || '?'}
+              </div>
+          }
+          <div className="min-w-0">
+            <p className={`font-semibold text-sm truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{entry.customerName}</p>
+            <div className={`flex flex-col text-[11px] mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              <span>{entry.phone ? `${entry.phone} • ` : ''}Due: ₹{entry.dueAmount}</span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className={`font-bold ${isDark ? 'text-yellow-500/80' : 'text-blue-600/80'}`}>
+                  {entry.date ? new Date(entry.date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : ''}
+                </span>
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                  entry.loanType === 'Daily' ? 'bg-yellow-400/10 text-yellow-500' : 
+                  entry.loanType === '15-Day' ? 'bg-blue-400/10 text-blue-500' : 'bg-purple-400/10 text-purple-500'
+                }`}>
+                  {entry.loanType}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Status & Overdue Badge */}
-      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-          isPaid
-            ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-700'
-            : isDark ? 'bg-red-500/20 text-accent-red' : 'bg-red-100 text-red-600'
-        }`}>
-          {isPaid ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-          {isPaid ? 'Paid' : 'Pending'}
+        {/* Status & Overdue Badge */}
+        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+            isPaid
+              ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-700'
+              : isDark ? 'bg-red-500/20 text-accent-red' : 'bg-red-100 text-red-600'
+          }`}>
+            {isPaid ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+            {isPaid ? 'Paid' : 'Pending'}
+          </div>
+          {!isPaid && new Date(entry.date).toISOString().split('T')[0] < new Date().toISOString().split('T')[0] && (
+            <span className="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-red-600 text-white shadow-lg animate-pulse ring-2 ring-red-500/50">
+              Overdue
+            </span>
+          )}
         </div>
-        {!isPaid && new Date(entry.date).toISOString().split('T')[0] < new Date().toISOString().split('T')[0] && (
-          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-red-600 text-white shadow-lg animate-pulse ring-2 ring-red-500/50">
-            Overdue
-          </span>
-        )}
-      </div>
 
-      {/* Input & Actions */}
-      <div className="flex flex-col gap-2 sm:w-56 flex-shrink-0">
-        {!isPaid && (
-          <>
+        {/* Amount actions */}
+        <div className="flex flex-col items-end sm:w-32 flex-shrink-0">
+          {isPaid ? (
             <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>₹</span>
-                <input
-                  type="number"
-                  value={inputAmt}
-                  onChange={e => setInputAmt(e.target.value)}
-                  placeholder={String(entry.dueAmount)}
-                  className={`w-full pl-6 pr-2 py-2 text-sm rounded-xl border outline-none transition-all ${isDark
-                    ? 'bg-dark-muted border-dark-border text-white placeholder-gray-600 focus:border-yellow-400'
-                    : 'bg-white border-light-border text-gray-900 placeholder-gray-400 focus:border-primary-blue'}`}
-                />
-              </div>
+              <span className={`text-sm font-bold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>₹{entry.paidAmount}</span>
               <button
-                onClick={handlePaid}
-                title="Mark Paid"
-                className={`flex-shrink-0 flex justify-center items-center h-9 w-9 rounded-xl transition-all active:scale-95 ${isDark ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                onClick={(e) => { e.stopPropagation(); handlePending(); }}
+                className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isDark ? 'text-gray-400 hover:text-white hover:bg-dark-muted' : 'text-gray-500 hover:bg-gray-100'}`}
               >
-                <CheckCircle2 className="w-4 h-4" />
+                <RefreshCw className="w-3 h-3" /> Undo
               </button>
             </div>
-          </>
-        )}
-        {isPaid && (
-          <div className="flex items-center gap-2 flex-1 w-full justify-between">
-            <span className={`text-sm font-bold ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>₹{entry.paidAmount}</span>
-            <button
-              onClick={handlePending}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isDark ? 'text-gray-400 hover:text-white hover:bg-dark-muted' : 'text-gray-500 hover:bg-gray-100'}`}
-            >
-              <RefreshCw className="w-3 h-3" /> Undo
-            </button>
-          </div>
-        )}
+          ) : (
+            <span className={`text-sm font-bold ${isDark ? 'text-accent-red' : 'text-red-600'}`}>
+              Due: ₹{entry.dueAmount}
+            </span>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Modal Overlay */}
+      {showModal && !isPaid && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className={`relative w-full max-w-sm rounded-2xl shadow-2xl p-6 animate-in fade-in zoom-in duration-200 ${isDark ? 'bg-dark-bg border border-dark-border' : 'bg-white border border-light-border'}`}>
+            <button 
+              onClick={() => setShowModal(false)}
+              className={`absolute top-4 right-4 p-1.5 rounded-full transition-colors ${isDark ? 'bg-dark-muted text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-900'}`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+
+            <div className="flex items-center gap-4 mb-6">
+              {entry.image
+                ? <img src={entry.image} alt={entry.customerName} className="w-14 h-14 rounded-xl object-cover border-2 border-dark-border" />
+                : <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-xl font-bold ${isDark ? 'bg-white/10 text-white' : 'bg-gray-100 text-primary-blue'}`}>
+                    {entry.customerName?.charAt(0).toUpperCase() || '?'}
+                  </div>
+              }
+              <div>
+                <h3 className={`text-lg font-bold leading-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>{entry.customerName}</h3>
+                <p className={`text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{entry.phone}</p>
+              </div>
+            </div>
+
+            <div className={`space-y-3 p-4 rounded-xl mb-6 ${isDark ? 'bg-dark-muted' : 'bg-gray-50'}`}>
+              <div className="flex justify-between items-center text-sm">
+                <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>Customer ID</span>
+                <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{entry.customerCode}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>Loan ID</span>
+                <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{entry.loanCode}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>Total Loan Amount</span>
+                <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>₹{entry.loanAmount?.toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Collection Amount</label>
+                <div className="relative">
+                  <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-lg font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>₹</span>
+                  <input
+                    type="number"
+                    value={inputAmt}
+                    onChange={e => setInputAmt(e.target.value)}
+                    placeholder={String(entry.dueAmount)}
+                    className={`w-full pl-8 pr-4 py-3 text-lg font-bold rounded-xl border outline-none transition-all ${isDark
+                      ? 'bg-dark-muted/50 border-dark-border text-white placeholder-gray-600 focus:border-yellow-400 focus:bg-dark-muted'
+                      : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-primary-blue focus:shadow-sm'}`}
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handlePaid}
+                className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                  isDark ? 'bg-emerald-500 text-white hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-green-600 text-white hover:bg-green-500 shadow-lg shadow-green-600/20'
+                }`}
+              >
+                Mark as Paid
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
@@ -150,7 +207,10 @@ const Collection = () => {
         ...c, 
         phone: cust?.phone || '', 
         image: cust?.image || null,
-        loanType: loan?.loanType || 'Daily'
+        loanType: loan?.loanType || 'Daily',
+        loanCode: loan?.loanCode || c.loanId,
+        customerCode: cust?.customerCode || c.customerCode || c.customerId,
+        loanAmount: loan?.loanAmount || c.totalAmount
       };
     });
   }, [collections, loans, customers]);

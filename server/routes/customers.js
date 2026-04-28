@@ -58,6 +58,7 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json(row);
   } catch (err) {
     console.error(err);
+    if (err.code === '23505') return res.status(400).json({ error: 'This record already exists (Duplicate Data)' });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -75,6 +76,7 @@ router.put('/:id', auth, async (req, res) => {
     `;
     res.json(row);
   } catch (err) {
+    if (err.code === '23505') return res.status(400).json({ error: 'This record already exists (Duplicate Data)' });
     res.status(500).json({ error: 'Server error' });
   }
 });

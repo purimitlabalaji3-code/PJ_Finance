@@ -169,12 +169,17 @@ export const AppProvider = ({ children }) => {
       try {
         // 1. Generate/Fetch today's specific collections
         await apiGenerateCollections(date).catch(() => {});
-        const [c, l, colToday, summary] = await Promise.all([
+        const results = await Promise.allSettled([
           apiFetchCustomers(),
           apiFetchLoans(),
           apiFetchCollections(date),
-          apiFetchCollectionSummary().catch(() => []),
+          apiFetchCollectionSummary(),
         ]);
+
+        const c = results[0].status === 'fulfilled' ? results[0].value : [];
+        const l = results[1].status === 'fulfilled' ? results[1].value : [];
+        const colToday = results[2].status === 'fulfilled' ? results[2].value : [];
+        const summary = results[3].status === 'fulfilled' ? results[3].value : [];
 
         setCustomers(Array.isArray(c) ? c.map(normalCustomer) : []);
         setLoans(Array.isArray(l) ? l.map(normalLoan) : []);
